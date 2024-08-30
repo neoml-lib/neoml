@@ -80,7 +80,7 @@ class NEOML_API CDnnModelWrapper : public IModel {
 public:
 	explicit CDnnModelWrapper(IMathEngine& mathEngine, unsigned int seed = 0xDEADFACE);
 
-	int GetClassCount() const override;
+	int GetClassCount() const override { return ClassCount; }
 	bool Classify(const CFloatVectorDesc& data, CClassificationResult& result) const override;
 	void Serialize(CArchive& archive) override;
 

@@ -214,83 +214,78 @@ CDnnModelWrapper::CDnnModelWrapper(IMathEngine& _mathEngine, unsigned int seed) 
 	SinkLayer->SetName(SinkLayerName);
 }
 
-int CDnnModelWrapper::GetClassCount() const
-{
-	return ClassCount;
-}
-
 bool CDnnModelWrapper::Classify(const CFloatVectorDesc& desc, CClassificationResult& result) const
 {
-	NeoAssert(SourceBlob.Ptr() != 0);
-	NeoPresume(SourceBlob.Ptr() == SourceLayer->GetBlob().Ptr());
+	NeoAssert( SourceBlob != nullptr );
+	NeoPresume( SourceBlob == SourceLayer->GetBlob() );
 
-	exchangeBuffer.SetSize(SourceBlob->GetDataSize());
-
-	for(int i = 0; i < exchangeBuffer.Size(); ++i) {
-		exchangeBuffer[i] = SourceEmptyFill;
+	exchangeBuffer.SetSize( SourceBlob->GetDataSize() );
+	if( SourceEmptyFill == 0.f ) {
+		::memset( exchangeBuffer.GetPtr(), 0, exchangeBuffer.Size() * sizeof( float ) );
+	} else {
+		for( int i = 0; i < exchangeBuffer.Size(); ++i ) {
+			exchangeBuffer[i] = SourceEmptyFill;
+		}
 	}
 
 	for(int i = 0; i < desc.Size; ++i) {
-		exchangeBuffer[desc.Indexes == nullptr ? i : desc.Indexes[i]] = desc.Values[i];
+		exchangeBuffer[( desc.Indexes == nullptr ) ? i : desc.Indexes[i]] = desc.Values[i];
 	}
-	SourceBlob->CopyFrom(exchangeBuffer.GetPtr());
+	SourceBlob->CopyFrom( exchangeBuffer.GetPtr() );
 
 	return classify( result );
 }
 
-static const int DnnModelWrapperVersion = 2000;
+constexpr int DnnModelWrapperVersion = 2001;
 
-void CDnnModelWrapper::Serialize(CArchive& archive)
+void CDnnModelWrapper::Serialize( CArchive& archive )
 {
-	archive.SerializeVersion( DnnModelWrapperVersion, CDnn::ArchiveMinSupportedVersion );
+	const int version = archive.SerializeVersion( DnnModelWrapperVersion, CDnn::ArchiveMinSupportedVersion );
 
-	if( archive.IsStoring() ) {
-		archive << ClassCount << Random << Dnn;
-		archive << CString(SourceLayer->GetName());
-		archive << CString(SinkLayer->GetName());
-		CBlobDesc sourceDesc( CT_Float );
-		sourceDesc.SetDimSize(BD_BatchWidth, 0);
-		if( SourceBlob.Ptr() != 0 ) {
-			sourceDesc = SourceBlob->GetDesc();
-		}
-		for( int i = 0; i < CBlobDesc::MaxDimensions; i++ ) {
-			archive << sourceDesc.DimSize(i);
-		}
-	} else if( archive.IsLoading() ) {
-		archive >> ClassCount >> Random >> Dnn;
+	archive.Serialize( ClassCount );
+	if( version >= 2001 ) {
+		archive.Serialize( SourceEmptyFill );
+	} else { // loading
+		SourceEmptyFill = 0;
+	}
+	archive.Serialize( Random );
+	archive.Serialize( Dnn );
 
-		CString name;
+	CString sourceName = SourceLayer->GetName();
+	archive.Serialize( sourceName );
+	CString sinkName = SinkLayer->GetName();
+	archive.Serialize( sinkName );
 
-		archive >> name;
-		if( Dnn.HasLayer(name) ) {
-			SourceLayer = CheckCast<CSourceLayer>(Dnn.GetLayer(name).Ptr());
+	CBlobDesc sourceDesc( CT_Float );
+	sourceDesc.SetDimSize( BD_BatchWidth, 0 ); // set zero
+	if( SourceBlob != nullptr ) {
+		sourceDesc = SourceBlob->GetDesc();
+	}
+	for( int i = 0; i < CBlobDesc::MaxDimensions; ++i ) {
+		int size = sourceDesc.DimSize( i );
+		archive.Serialize( size );
+		sourceDesc.SetDimSize( i, size );
+	}
+
+	if( archive.IsLoading() ) {
+		if( Dnn.HasLayer( sourceName ) ) {
+			SourceLayer = CheckCast<CSourceLayer>( Dnn.GetLayer( sourceName ).Ptr() );
 		} else {
-			SourceLayer->SetName(name);
+			SourceLayer->SetName( sourceName );
 		}
-
-		archive >> name;
-		if( Dnn.HasLayer(name) ) {
-			SinkLayer = CheckCast<CSinkLayer>(Dnn.GetLayer(name).Ptr());
+		if( Dnn.HasLayer( sinkName ) ) {
+			SinkLayer = CheckCast<CSinkLayer>( Dnn.GetLayer( sinkName ).Ptr() );
 		} else {
-			SinkLayer->SetName(name);
+			SinkLayer->SetName( sinkName );
 		}
-		CBlobDesc sourceDesc( CT_Float );
-		for( int i = 0; i < CBlobDesc::MaxDimensions; i++ ) {
-			int size;
-			archive >> size;
-			sourceDesc.SetDimSize(i, size);
-		}
-		if( sourceDesc.BlobSize() == 0 ) {
-			SourceBlob = 0;
+		if( sourceDesc.BlobSize() == 0 ) { // is zero
+			SourceBlob = nullptr;
 		} else {
 			SourceBlob = CDnnBlob::CreateBlob(mathEngine, CT_Float, sourceDesc);
 			SourceLayer->SetBlob(SourceBlob);
 		}
-
 		exchangeBuffer.SetSize(0);
 		tempExp.SetSize(0);
-	} else {
-		NeoAssert( false );
 	}
 }
 
