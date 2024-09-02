@@ -1,4 +1,4 @@
-/* Copyright © 2017-2021 ABBYY Production LLC
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -21,9 +21,10 @@ limitations under the License.
 
 static inline py::array getArray( const CArray<float>& matr )
 {
-	py::array_t<float, py::array::c_style> array( ssize_t{ matr.Size() } );
-	memcpy( static_cast<float*>( array.request().ptr ), matr.GetPtr(), matr.Size() * sizeof( float ) );
-	return array;
+	py::array_t<float, py::array::c_style> result( py::ssize_t{ matr.Size() } );
+	NeoAssert( matr.Size() == result.size() );
+	memcpy( static_cast<float*>( result.request().ptr ), matr.GetPtr(), matr.Size() * sizeof( float ) );
+	return result;
 }
 
 static CFloatMatrixDesc getMatrix( int height, int width, const int* columns, const float* values, const int* rowPtr )
@@ -217,7 +218,8 @@ void InitializePCA(py::module& m)
 			leftArray.resize( { height, components } );
 			memcpy( static_cast<float*>( leftArray.request().ptr ), leftVectors.GetPtr(), height * components * sizeof( float ) );
 		}
-		py::array_t<float, py::array::c_style> singularArray( ssize_t{ components } );
+		py::array_t<float, py::array::c_style> singularArray( py::ssize_t{ components } );
+		NeoAssert( components == singularArray.size() );
 		memcpy( static_cast<float*>( singularArray.request().ptr ), singularValues.GetPtr(), components * sizeof( float ) );
 		py::array_t<float, py::array::c_style> rightArray;
 		if( returnRightVectors ) {

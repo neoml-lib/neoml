@@ -1,4 +1,4 @@
-/* Copyright © 2017-2023 ABBYY Production LLC
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -58,7 +58,8 @@ public:
 
 	py::array GetRules() const
 	{
-		py::array_t<int, py::array::c_style> result( 7 );
+		py::array_t<int, py::array::c_style> result( py::ssize_t{ 7 } );
+		NeoAssert( 7 == result.size() );
 		auto temp = result.mutable_unchecked();
 		for( int i = 0; i < 7; ++i ) {
 			temp[i] = static_cast<int>( Layer<COnnxTransformHelper>()->GetRule( static_cast<TBlobDim>( i ) ) ); 

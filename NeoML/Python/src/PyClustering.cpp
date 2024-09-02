@@ -68,7 +68,8 @@ py::tuple CPyClustering::Clusterize( py::array indices, py::array data, py::arra
 		clustering->Clusterize( problem.Ptr(), result );
 	}
 
-	py::array_t<int, py::array::c_style> clusters( static_cast<int>( weight.size() ) );
+	py::array_t<int, py::array::c_style> clusters( py::ssize_t{ weight.size() } );
+	NeoAssert( weight.size() == clusters.size() );
 	auto tempClusters = clusters.mutable_unchecked<1>();
 	for( int i = 0; i < result.Data.Size(); i++ ) {
 		tempClusters(i) = result.Data[i];
