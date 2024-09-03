@@ -670,6 +670,9 @@ static void memCheckTest( bool useLora, int optimizeDnnIterations = 0, int encod
 	{
 		const int iters = optimizeDnnIterations;
 
+		MathEngine().ResetPeakMemoryUsage();
+		dnn.RunOnce(); // Initializing
+
 		counters->Synchronise();
 		for( int iter = 0; iter < iters; ++iter ) {
 			dnn.RunOnce();
@@ -678,10 +681,12 @@ static void memCheckTest( bool useLora, int optimizeDnnIterations = 0, int encod
 
 		const double unoptTime = GetTimeScaled( *counters );
 		CPtr<CDnnBlob> expectedBlob = CheckCast<CSinkLayer>( dnn.GetLayer( "sink" ) )->GetBlob();
+		const double unoptPeakMem = GetPeakMemScaled( MathEngine() );
 
 		OptimizeDnn( dnn );
 
 		MathEngine().ResetPeakMemoryUsage();
+		dnn.RunOnce(); // Initializing
 
 		counters->Synchronise();
 		for( int iter = 0; iter < iters; ++iter ) {
@@ -693,9 +698,12 @@ static void memCheckTest( bool useLora, int optimizeDnnIterations = 0, int encod
 		CPtr<CDnnBlob> sinkBlob = CheckCast<CSinkLayer>( dnn.GetLayer( "sink" ) )->GetBlob();
 
 		GTEST_LOG_( INFO )
-			<< "\n RunOnce " << iters << " (unopt) Time: " << unoptTime << " ms. per inter " << ( unoptTime / iters )
-			<< "\n RunOnce " << iters << "   (opt) Time: " << optTime << " ms. per inter " << ( optTime / iters )
-			<< "\n Peak.Mem: " << GetPeakMemScaled( MathEngine() ) << " MB"
+			<< "\n RunOnce " << iters << " (unopt) Time: " << unoptTime << " ms.,"
+				<< "\t per iter: " << ( unoptTime / iters ) << " ms.,"
+				<< "\t Peak.Mem: " << unoptPeakMem << " MB"
+			<< "\n RunOnce " << iters << "   (opt) Time: " << optTime << " ms.,"
+				<< "\t per iter: " << ( optTime / iters ) << " ms.,"
+				<< "\t Peak.Mem: " << GetPeakMemScaled( MathEngine() ) << " MB"
 			<< "\n";
 
 		// Check for consistence
