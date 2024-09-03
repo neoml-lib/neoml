@@ -29,7 +29,7 @@ class NEOML_API CDnnSolver : virtual public IObject {
 public:
 	// Stores the calculated values of layer parameters gradients for further use in Train method
 	// forSharedWeightsLayer=true should only be used within layers that share weights with other layers.
-	void AddDiff( CBaseLayer* layer, const CObjectArray<CDnnBlob>& paramDiffBlobs, 
+	void AddDiff( const CBaseLayer* layer, const CObjectArray<CDnnBlob>& paramDiffBlobs, 
 		bool sharedWeights = false );
 
 	// Modifies the trainable parameters of the network layers, 
@@ -98,8 +98,8 @@ private:
 	// Used in the inheriting classes
 	CMap<CString, CObjectArray<CDnnBlob>> layerToGradientHistory;
 	// Layers which require reduction across distributed solver
-	CHashTable<CBaseLayer*> layersToReduce; // Fast check if layer is included already
-	CArray<CBaseLayer*> reduceOrder; // Correct order across all of the distributed nets
+	CHashTable<const CBaseLayer*> layersToReduce; // Fast check if layer is included already
+	CArray<const CBaseLayer*> reduceOrder; // Correct order across all of the distributed nets
 
 	// Averages weights over all threads
 	void allReduce( float distributedCoeff );

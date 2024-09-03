@@ -314,13 +314,17 @@ void CBaseLayer::transferParamsBlob( CBaseLayer& dist ) const
 		}
 	} else {
 		NeoAssertMsg( dist.paramBlobs.Size() == paramBlobs.Size(), "transferParamsBlob: It isn't a copy of the layer" );
+		if( IsLearnableWithEmptyParamBlobs() ) { // Special case is CTiedEmbeddingsLayer
+			NeoAssert( dist.IsLearnable() && paramBlobs.Size() == 0 );
+			return;
+		}
 
 		NeoAssertMsg( !dist.IsLearnable() || paramBlobs.Size() > 0,
 			"transferParamsBlob: The origin dnn should be trained and reshaped to create a reference dnn" );
 		// Create reference copy of dist.paramBlobs with shared buffer
 		// Takes a pointer to parent's blob to access memory
 		for( int j = 0; j < dist.paramBlobs.Size(); ++j ) {
-			if( ContainsEmptyParamBlob( j ) ) {
+			if( ContainsNullParamBlob( j ) ) {
 				dist.paramBlobs[j] = nullptr; // may contain empty parameter
 				continue;
 			}
