@@ -221,7 +221,7 @@ void CVulkanMathEngine::VectorELU(const CConstFloatHandle& firstHandle, const CF
 {
 	CFloatHandleStackVar alphaHandle( *this );
 	alphaHandle.SetValue( alpha );
-	const CMemoryHandle bufs[3]{ firstHandle, resultHandle, alphaHandle };
+	const CMemoryHandle bufs[3]{ firstHandle, resultHandle, alphaHandle.GetHandle() };
 	const size_t sizes[3]{ vectorSize * sizeof(float), vectorSize * sizeof(float), sizeof(float) };
 
 	runVectorShader(shaderLoader->GET_SHADER_DATA(VectorELU, false, 0, 0, 3),
@@ -233,7 +233,7 @@ void CVulkanMathEngine::VectorELUDiff(const CConstFloatHandle& firstHandle, cons
 {
 	CFloatHandleStackVar alphaHandle( *this );
 	alphaHandle.SetValue( alpha );
-	const CMemoryHandle bufs[4]{ firstHandle, secondHandle, resultHandle, alphaHandle };
+	const CMemoryHandle bufs[4]{ firstHandle, secondHandle, resultHandle, alphaHandle.GetHandle() };
 	const size_t sizes[4]{ vectorSize * sizeof(float), vectorSize * sizeof(float),
 		vectorSize * sizeof(float), sizeof(float) };
 
@@ -246,7 +246,7 @@ void CVulkanMathEngine::VectorELUDiffOp(const CConstFloatHandle& firstHandle, co
 {
 	CFloatHandleStackVar alphaHandle( *this );
 	alphaHandle.SetValue( alpha );
-	const CMemoryHandle bufs[4]{ firstHandle, secondHandle, resultHandle, alphaHandle };
+	const CMemoryHandle bufs[4]{ firstHandle, secondHandle, resultHandle, alphaHandle.GetHandle() };
 	const size_t sizes[4]{ vectorSize * sizeof(float), vectorSize * sizeof(float),
 		vectorSize * sizeof(float), sizeof(float) };
 
@@ -257,12 +257,12 @@ void CVulkanMathEngine::VectorELUDiffOp(const CConstFloatHandle& firstHandle, co
 void CVulkanMathEngine::VectorReLU(const CConstFloatHandle& firstHandle,
 	const CFloatHandle& resultHandle, int vectorSize, float upperThreshold)
 {
-	CFloatHandleStackVar upperThresholdHandle( *this );
-	upperThresholdHandle.SetValue( upperThreshold );
+	CFloatHandleStackVar var( *this );
+	var.SetValue( upperThreshold );
 
 	const int countQuad = ( vectorSize / 16 ) * 4;
 	if( countQuad > 0 ) {
-		const CMemoryHandle bufs[3]{ firstHandle, resultHandle, upperThresholdHandle };
+		const CMemoryHandle bufs[3]{ firstHandle, resultHandle, var.GetHandle() };
 		const size_t sizes[3]{ 4 * countQuad * sizeof( float ), 4 * countQuad * sizeof( float ), sizeof( float ) };
 
 		runVectorShader( shaderLoader->GET_SHADER_DATA( VectorReLU4, false, 0, 0, 3 ),
@@ -272,7 +272,7 @@ void CVulkanMathEngine::VectorReLU(const CConstFloatHandle& firstHandle,
 	const int countSingle = vectorSize % 16;
 	if( countSingle > 0 ) {
 		const int offset = vectorSize - countSingle;
-		const CMemoryHandle bufs[3]{ firstHandle + offset, resultHandle + offset, upperThresholdHandle };
+		const CMemoryHandle bufs[3]{ firstHandle + offset, resultHandle + offset, var.GetHandle() };
 		const size_t sizes[3]{ countSingle * sizeof( float ), countSingle * sizeof( float ), sizeof( float ) };
 
 		runVectorShader( shaderLoader->GET_SHADER_DATA( VectorReLU, false, 0, 0, 3 ),
@@ -285,7 +285,7 @@ void CVulkanMathEngine::VectorReLUDiff(const CConstFloatHandle& firstHandle, con
 {
 	CFloatHandleStackVar upperThresholdHandle( *this );
 	upperThresholdHandle.SetValue( upperThreshold );
-	const CMemoryHandle bufs[4]{ firstHandle, secondHandle, resultHandle, upperThresholdHandle };
+	const CMemoryHandle bufs[4]{ firstHandle, secondHandle, resultHandle, upperThresholdHandle.GetHandle() };
 	const size_t sizes[4]{ vectorSize * sizeof(float), vectorSize * sizeof(float),
 		vectorSize * sizeof(float), sizeof(float) };
 
@@ -298,7 +298,7 @@ void CVulkanMathEngine::VectorLeakyReLU(const CConstFloatHandle& firstHandle,
 {
 	CFloatHandleStackVar alphaHandle( *this );
 	alphaHandle.SetValue( alpha );
-	const CMemoryHandle bufs[3]{ firstHandle, resultHandle, alphaHandle };
+	const CMemoryHandle bufs[3]{ firstHandle, resultHandle, alphaHandle.GetHandle() };
 	const size_t sizes[3]{ vectorSize * sizeof(float), vectorSize * sizeof(float), sizeof(float) };
 
 	runVectorShader(shaderLoader->GET_SHADER_DATA(VectorLeakyReLU, false, 0, 0, 3),
@@ -311,7 +311,7 @@ void CVulkanMathEngine::VectorLeakyReLUDiff(const CConstFloatHandle& firstHandle
 {
 	CFloatHandleStackVar alphaHandle( *this );
 	alphaHandle.SetValue( alpha );
-	const CMemoryHandle bufs[4]{ firstHandle, secondHandle, resultHandle, alphaHandle };
+	const CMemoryHandle bufs[4]{ firstHandle, secondHandle, resultHandle, alphaHandle.GetHandle() };
 	const size_t sizes[4]{ vectorSize * sizeof(float), vectorSize * sizeof(float),
 		vectorSize * sizeof(float), sizeof(float) };
 
@@ -464,7 +464,7 @@ void CVulkanMathEngine::VectorHardSigmoid(const CConstFloatHandle& firstHandle,
 	CFloatHandleStackVar var( *this, 2 );
 	var.SetValueAt( 0, slope );
 	var.SetValueAt( 1, bias );
-	const CMemoryHandle bufs[4]{ firstHandle, resultHandle, var, var + 1 };
+	const CMemoryHandle bufs[4]{ firstHandle, resultHandle, var.GetHandle(), var.GetHandle() + 1 };
 	const size_t sizes[4]{ vectorSize * sizeof( float ), vectorSize * sizeof( float ),
 		sizeof( float ), sizeof( float ) };
 
@@ -479,7 +479,7 @@ void CVulkanMathEngine::VectorHardSigmoidDiff(const CConstFloatHandle& firstHand
 	CFloatHandleStackVar var( *this, 2 );
 	var.SetValueAt( 0, slope );
 	var.SetValueAt( 1, bias );
-	const CMemoryHandle bufs[5]{ firstHandle, secondHandle, resultHandle, var, var + 1 };
+	const CMemoryHandle bufs[5]{ firstHandle, secondHandle, resultHandle, var.GetHandle(), var.GetHandle() + 1 };
 	const size_t sizes[5]{ vectorSize * sizeof(float), vectorSize * sizeof(float),
 		vectorSize * sizeof(float), sizeof( float ), sizeof( float ) };
 
@@ -493,7 +493,7 @@ void CVulkanMathEngine::VectorHardSigmoidDiffOp( const CConstFloatHandle& firstH
 {
 	CFloatHandleStackVar slopeHandle( *this );
 	slopeHandle.SetValue( slope );
-	const CMemoryHandle bufs[4]{ firstHandle, secondHandle, resultHandle, slopeHandle };
+	const CMemoryHandle bufs[4]{ firstHandle, secondHandle, resultHandle, slopeHandle.GetHandle() };
 	const size_t sizes[4]{ vectorSize * sizeof(float), vectorSize * sizeof(float),
 		vectorSize * sizeof(float), sizeof( float ) };
 
@@ -543,7 +543,7 @@ void CVulkanMathEngine::VectorBernulliKLDerivative(const CConstFloatHandle& esti
 {
 	CFloatHandleStackVar targetHandle( *this );
 	targetHandle.SetValue( target );
-	const CMemoryHandle bufs[3]{ estimationHandle, resultHandle, targetHandle };
+	const CMemoryHandle bufs[3]{ estimationHandle, resultHandle, targetHandle.GetHandle() };
 	const size_t sizes[3]{ vectorSize * sizeof(float), vectorSize * sizeof(float), sizeof(float) };
 
 	runVectorShader(shaderLoader->GET_SHADER_DATA(VectorBernulliKLDerivative, false, 0, 0, 3),
@@ -592,7 +592,7 @@ void CVulkanMathEngine::VectorAddValue(const CConstFloatHandle& firstHandle,
 {
 	CFloatHandleStackVar additionHandle( *this );
 	additionHandle.SetValue( addition );
-	const CMemoryHandle bufs[3]{ firstHandle, additionHandle, resultHandle };
+	const CMemoryHandle bufs[3]{ firstHandle, additionHandle.GetHandle(), resultHandle };
 	const size_t sizes[3]{ vectorSize * sizeof(float), sizeof(float), vectorSize * sizeof(float) };
 
 	runVectorShader( shaderLoader->GET_SHADER_DATA( VectorAddValue, false, 0, 0, 3),
@@ -604,7 +604,7 @@ void CVulkanMathEngine::VectorAddValue(const CConstIntHandle& firstHandle,
 {
 	CIntHandleStackVar additionHandle( *this );
 	additionHandle.SetValue( addition );
-	const CMemoryHandle bufs[3]{ firstHandle, additionHandle, resultHandle };
+	const CMemoryHandle bufs[3]{ firstHandle, additionHandle.GetHandle(), resultHandle };
 	const size_t sizes[3]{ vectorSize * sizeof(int), sizeof(int), vectorSize * sizeof(int) };
 
 	PARAM_STRUCT(VectorAddInt) param = { 1 };
@@ -639,7 +639,7 @@ void CVulkanMathEngine::VectorMultiplyAndAdd(const CConstFloatHandle& firstHandl
 {
 	CFloatHandleStackVar multHandle( *this );
 	multHandle.SetValue( mult );
-	const CMemoryHandle bufs[4]{ firstHandle, secondHandle, resultHandle, multHandle };
+	const CMemoryHandle bufs[4]{ firstHandle, secondHandle, resultHandle, multHandle.GetHandle() };
 	const size_t sizes[4]{ vectorSize * sizeof(float), vectorSize * sizeof(float),
 		vectorSize * sizeof(float), sizeof(float) };
 
@@ -653,7 +653,7 @@ void CVulkanMathEngine::VectorMultiplyAndSub(const CConstFloatHandle& firstHandl
 {
 	CFloatHandleStackVar multHandle( *this );
 	multHandle.SetValue( mult );
-	const CMemoryHandle bufs[4]{ firstHandle, secondHandle, resultHandle, multHandle };
+	const CMemoryHandle bufs[4]{ firstHandle, secondHandle, resultHandle, multHandle.GetHandle() };
 	const size_t sizes[4]{ vectorSize * sizeof(float), vectorSize * sizeof(float),
 		vectorSize * sizeof(float), sizeof(float) };
 
@@ -666,7 +666,7 @@ void CVulkanMathEngine::VectorMultiply(const CConstFloatHandle& firstHandle,
 {
 	CFloatHandleStackVar multiplierHandle( *this );
 	multiplierHandle.SetValue( mult );
-	const CMemoryHandle bufs[3]{ firstHandle, multiplierHandle, resultHandle };
+	const CMemoryHandle bufs[3]{ firstHandle, multiplierHandle.GetHandle(), resultHandle };
 	const size_t sizes[3]{ vectorSize * sizeof(float), sizeof(float), vectorSize * sizeof(float) };
 
 	PARAM_STRUCT(VectorMultiplyFloat) param = { 1, 0, 0 };
@@ -685,7 +685,7 @@ void CVulkanMathEngine::VectorNegMultiply(const CConstFloatHandle& firstHandle,
 {
 	CFloatHandleStackVar multiplierHandle( *this );
 	multiplierHandle.SetValue( mult );
-	const CMemoryHandle bufs[3]{ firstHandle, multiplierHandle, resultHandle };
+	const CMemoryHandle bufs[3]{ firstHandle, multiplierHandle.GetHandle(), resultHandle };
 	const size_t sizes[3]{ vectorSize * sizeof(float), sizeof(float), vectorSize * sizeof(float) };
 
 	PARAM_STRUCT(VectorMultiplyFloat) param = { 1, 1, 0 };
@@ -798,7 +798,7 @@ void CVulkanMathEngine::VectorMinMax(const CConstFloatHandle& firstHandle, const
 	CFloatHandleStackVar var( *this, 2 );
 	var.SetValueAt( 0, min );
 	var.SetValueAt( 1, max );
-	const CMemoryHandle bufs[4]{ firstHandle, resultHandle, var, var + 1 };
+	const CMemoryHandle bufs[4]{ firstHandle, resultHandle, var.GetHandle(), var.GetHandle() + 1 };
 	const size_t sizes[4]{ vectorSize * sizeof(float), vectorSize * sizeof(float), sizeof(float), sizeof(float) };
 
 	runVectorShader(shaderLoader->GET_SHADER_DATA(VectorMinMax, false, 0, 0, 4),
@@ -913,7 +913,7 @@ void CVulkanMathEngine::VectorL1DiffAdd(const CConstFloatHandle& firstHandle, co
 	CFloatHandleStackVar var( *this, 2 );
 	var.SetValueAt( 0, hubertThreshold );
 	var.SetValueAt( 1, mult );
-	const CMemoryHandle bufs[5]{ firstHandle, secondHandle, resultHandle, var, var + 1 };
+	const CMemoryHandle bufs[5]{ firstHandle, secondHandle, resultHandle, var.GetHandle(), var.GetHandle() + 1 };
 	const size_t sizes[5]{ vectorSize * sizeof(float), vectorSize * sizeof(float), vectorSize * sizeof(float),
 		sizeof(float), sizeof(float) };
 
@@ -1108,7 +1108,7 @@ void CVulkanMathEngine::VectorEqualValue(const CConstIntHandle& firstHandle,
 {
 	CIntHandleStackVar valueHandle( *this );
 	valueHandle.SetValue( value );
-	const CMemoryHandle bufs[3]{ firstHandle, valueHandle, resultHandle };
+	const CMemoryHandle bufs[3]{ firstHandle, valueHandle.GetHandle(), resultHandle };
 	const size_t sizes[3]{ vectorSize * sizeof(float), sizeof(float), vectorSize * sizeof(float) };
 
 	PARAM_STRUCT(VectorEqual) param = { 1 };
