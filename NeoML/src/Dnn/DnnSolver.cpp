@@ -284,18 +284,16 @@ void CDnnSolver::clipGradients( const CObjectArray<CDnnBlob>& paramDiffBlobs )
 			paramDiffBlobs[i]->GetDataSize(), tempVar );
 		MathEngine().VectorAdd( gradVar, tempVar, gradVar, 1 );
 	}
-	NeoPresume( std::isfinite( gradVar.GetValue() ) );
-	MathEngine().VectorSqrt( gradVar, gradVar, 1 );
 
+	float grad = gradVar.GetValue(); // CUDA sync
+	NeoPresume( std::isfinite( grad ) );
 	// Calculate scale
-	MathEngine().VectorMax( gradVar, maxGradientNorm, gradVar, 1 );
-	MathEngine().VectorInv( gradVar, tempVar, 1 );
-	MathEngine().VectorMultiply( tempVar, tempVar, 1, maxGradientNorm );
+	grad = maxGradientNorm / max( sqrtf( grad ), maxGradientNorm );
 
 	// Decrease the gradient
 	for( int i = 0; i < paramDiffBlobs.Size(); ++i ) {
 		MathEngine().VectorMultiply( paramDiffBlobs[i]->GetData(), paramDiffBlobs[i]->GetData(),
-			paramDiffBlobs[i]->GetDataSize(), tempVar );
+			paramDiffBlobs[i]->GetDataSize(), grad );
 	}
 }
 
@@ -984,8 +982,7 @@ float CDnnLambGradientSolver::calcL2NormAverage( const CConstFloatHandle& data, 
 
 	//normL2Var->GetData().SetValue( 0.f ); // CUDA sync
 	MathEngine().VectorDotProduct( tempNormBlob->GetData(), tempNormBlob->GetData(), dataSize, normL2Var->GetData() );
-	MathEngine().VectorSqrt( normL2Var->GetData(), normL2Var->GetData(), 1 );
-	return normL2Var->GetData().GetValue(); // CUDA sync
+	return sqrtf( normL2Var->GetData().GetValue() ); // CUDA sync
 }
 
 // Parameter indices, used in weightDecay
