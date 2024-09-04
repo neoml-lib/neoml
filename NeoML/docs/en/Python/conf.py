@@ -22,7 +22,7 @@
 # -- Project information -----------------------------------------------------
 
 project = 'NeoML'
-copyright = '2023, ABBYY'
+copyright = '2024, ABBYY'
 author = 'ABBYY'
 
 
@@ -88,7 +88,7 @@ author = 'ABBYY'
 
 # -- General configuration ---------------------------------------------------
 
-import sphinx_rtd_theme
+#import sphinx_rtd_theme
 from os import getenv
 
 # Add any Sphinx extension module names here, as strings. They can be

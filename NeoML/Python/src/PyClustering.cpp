@@ -1,4 +1,4 @@
-/* Copyright © 2017-2021 ABBYY Production LLC
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -57,7 +57,7 @@ private:
 
 py::tuple CPyClustering::Clusterize( py::array indices, py::array data, py::array rowPtr, bool isSparse, int featureCount, py::array weight )
 {
-	CPtr<CPyClusteringData> problem = new CPyClusteringData( static_cast<int>( weight.size() ), featureCount,
+	CPtr<const CPyClusteringData> problem = new CPyClusteringData( static_cast<int>( weight.size() ), featureCount,
 		reinterpret_cast<const int*>( isSparse ? indices.data() : nullptr ), reinterpret_cast<const float*>( data.data() ),
 		reinterpret_cast<const int*>( rowPtr.data() ), reinterpret_cast<const float*>( weight.data() ) );
 
@@ -68,7 +68,8 @@ py::tuple CPyClustering::Clusterize( py::array indices, py::array data, py::arra
 		clustering->Clusterize( problem.Ptr(), result );
 	}
 
-	py::array_t<int, py::array::c_style> clusters( static_cast<int>( weight.size() ) );
+	py::array_t<int, py::array::c_style> clusters( py::ssize_t{ weight.size() } );
+	NeoAssert( weight.size() == clusters.size() );
 	auto tempClusters = clusters.mutable_unchecked<1>();
 	for( int i = 0; i < result.Data.Size(); i++ ) {
 		tempClusters(i) = result.Data[i];

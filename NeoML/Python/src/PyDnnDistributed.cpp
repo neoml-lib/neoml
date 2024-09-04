@@ -1,4 +1,5 @@
-/* Copyright © 2017-2023 ABBYY
+/* Copyright © 2017-2024 ABBYY
+
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
@@ -69,7 +70,8 @@ py::array CPyDistributedTraining::LastLosses( const std::string& layer )
 {
 	CArray<float> losses;
 	GetLastLoss( layer, losses );
-	py::array_t<float, py::array::c_style> lastLosses( ssize_t{ losses.Size() } );
+	py::array_t<float, py::array::c_style> lastLosses( py::ssize_t{ losses.Size() } );
+	NeoAssert( losses.Size() == lastLosses.size() );
 	memcpy( static_cast<float*>( lastLosses.request().ptr ), losses.GetPtr(), losses.Size() * sizeof( float ) );
 	return lastLosses;
 }

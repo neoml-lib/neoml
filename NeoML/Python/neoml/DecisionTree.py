@@ -1,4 +1,4 @@
-""" Copyright (c) 2017-2021 ABBYY Production LLC
+""" Copyright (c) 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -14,9 +14,8 @@ limitations under the License.
 --------------------------------------------------------------------------------------------------------------
 """
 
-import numpy
+import numpy as np
 from .Utils import convert_data, get_data
-from scipy.sparse import csr_matrix, issparse
 import neoml.PythonWrapper as PythonWrapper
 
 
@@ -126,20 +125,20 @@ class DecisionTreeClassifier(PythonWrapper.DecisionTree):
         """
 
         x = convert_data(X)
-        y = numpy.array(Y, dtype=numpy.int32, copy=False, order='C')
+        y = np.asarray(Y, dtype=np.int32, order='C')
 
         if x.shape[0] != y.size:
             raise ValueError('The `X` and `Y` inputs must be the same length.')
 
         if weight is None:
-            weight = numpy.ones(y.size, numpy.float32, order='C')
+            weight = np.ones(y.size, np.float32, order='C')
         else:
-            weight = numpy.array(weight, dtype=numpy.float32, copy=False, order='C')
+            weight = np.asarray(weight, dtype=np.float32, order='C')
 
-        if numpy.any(y < 0):
+        if np.any(y < 0):
             raise ValueError('All `Y` elements must be >= 0.')
 
-        if numpy.any(weight < 0):
+        if np.any(weight < 0):
             raise ValueError('All `weight` elements must be >= 0.')
 
         return DecisionTreeClassificationModel(super().train_classifier(*get_data(x), int(x.shape[1]), y, weight))

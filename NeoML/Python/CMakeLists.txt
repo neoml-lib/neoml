@@ -17,7 +17,7 @@ find_package(Python3 ${Python3_FIND_VERSION} EXACT COMPONENTS Interpreter Develo
 FetchContent_Declare(
     pybind11
     GIT_REPOSITORY https://github.com/pybind/pybind11.git
-    GIT_TAG v2.11.1
+    GIT_TAG v2.13.5
 )
 
 FetchContent_GetProperties(pybind11)

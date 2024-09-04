@@ -4,7 +4,7 @@ on 20newsgroups dataset
 
 __copyright__ = """
 
-Copyright © 2017-2021 ABBYY Production LLC
+Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -24,7 +24,6 @@ __license__ = 'Apache 2.0'
 
 import neoml
 import numpy as np
-import itertools
 import time
 
 # Get data
@@ -56,6 +55,7 @@ shared_kwargs = {
     'prune' : 0.,
     'thread_count' : 1,
 }
+
 
 # Train and test boosting for every builder type
 for builder in ['full', 'hist', 'multi_full']:
