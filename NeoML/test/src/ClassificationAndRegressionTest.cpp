@@ -1,4 +1,4 @@
-/* Copyright © 2021-2023 ABBYY
+/* Copyright © 2021-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -78,12 +78,12 @@ void Train( ITrainingModel& trainingModel, const IProblem& denseProblem, const I
 {
 	int begin = GetTickCount();
 	modelDense = trainingModel.Train( denseProblem );
-	GTEST_LOG_( INFO ) << "Dense train time: " << GetTickCount() - begin;
+	GTEST_LOG_( INFO ) << "Dense train time: " << ( GetTickCount() - begin );
 	ASSERT_TRUE( modelDense != nullptr );
 
 	begin = GetTickCount();
 	modelSparse = trainingModel.Train( sparseProblem );
-	GTEST_LOG_( INFO ) << "Sparse train time: " << GetTickCount() - begin;
+	GTEST_LOG_( INFO ) << "Sparse train time: " << ( GetTickCount() - begin );
 	ASSERT_TRUE( modelSparse != nullptr );
 }
 
@@ -91,20 +91,20 @@ template<class TModel>
 void TrainGB( const CGradientBoost::CParams& params, const IProblem& denseProblem, const IProblem& sparseProblem,
 	CPtr<TModel>& modelDense, CPtr<TModel>& modelSparse )
 {
-	GTEST_LOG_( INFO ) << "Random = " << params.Random->Next();
 	CGradientBoost boosting( params );
 	int begin = GetTickCount();
 	modelDense = boosting.TrainModel<TModel>( denseProblem );
-	GTEST_LOG_( INFO ) << "Dense train time: " << GetTickCount() - begin;
-	GTEST_LOG_( INFO ) << "The last loss: " << boosting.GetLastLossMean();
+	GTEST_LOG_( INFO ) << "\n Random = " << params.Random->Next()
+		<< "\n Dense train time: " << ( GetTickCount() - begin )
+		<< "\n The last loss: " << boosting.GetLastLossMean();
 	ASSERT_TRUE( modelDense != nullptr );
 
 	params.Random->Reset( 0 );
-	GTEST_LOG_( INFO ) << "Random = " << params.Random->Next();
 	begin = GetTickCount();
 	modelSparse = boosting.TrainModel<TModel>( sparseProblem );
-	GTEST_LOG_( INFO ) << "Sparse train time: " << GetTickCount() - begin;
-	GTEST_LOG_( INFO ) << "The last loss: " << boosting.GetLastLossMean();
+	GTEST_LOG_( INFO ) << "\n Random = " << params.Random->Next()
+		<< "\n Sparse train time: " << ( GetTickCount() - begin )
+		<< "\n The last loss: " << boosting.GetLastLossMean();
 	ASSERT_TRUE( modelSparse != nullptr );
 }
 
@@ -551,12 +551,12 @@ TEST_F( RandomBinaryRegression4000x20, Linear )
 
 	int begin = GetTickCount();
 	auto model = linear.TrainRegression( *denseRandomBinaryProblem );
-	GTEST_LOG_( INFO ) << "Dense train time: " << GetTickCount() - begin;
+	GTEST_LOG_( INFO ) << "Dense train time: " << ( GetTickCount() - begin );
 	ASSERT_TRUE( model != nullptr );
 
 	begin = GetTickCount();
 	auto model2 = linear.TrainRegression( *sparseRandomBinaryProblem );
-	GTEST_LOG_( INFO ) << "Sparse train time: " << GetTickCount() - begin;
+	GTEST_LOG_( INFO ) << "Sparse train time: " << ( GetTickCount() - begin );
 	ASSERT_TRUE( model2 != nullptr );
 
 	for( int i = 0; i < sparseBinaryTestData->GetVectorCount(); i++ ) {
