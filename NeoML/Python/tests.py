@@ -1,4 +1,21 @@
-from unittest import TestCase, skipIf
+# -*- coding: utf-8 -*-
+
+""" Copyright (c) 2017-2024 ABBYY
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+--------------------------------------------------------------------------------------------------------------
+"""
+from unittest import TestCase, skipIf, main
 import os
 import sys
 import tempfile
@@ -13,11 +30,12 @@ import random
 
 class MultithreadedTestCase(TestCase):
     def _thread_function(self, target, kwargs):
-        print(f"python thread {threading.get_ident()} started")
+        print(f"\tpython thread {threading.get_ident()} started")
         target(**kwargs)
-        print(f"python thread {threading.get_ident()} finished")
+        print(f"\tpython thread {threading.get_ident()} finished")
 
     def _test_mt(self, target, result, enable_assert=False):
+        print(super().id()) # test name
         import time
         threads = []
         system_time, user_time = time.perf_counter(), time.process_time()
@@ -28,9 +46,8 @@ class MultithreadedTestCase(TestCase):
         for t in threads:
             t.join()
         system_time, user_time = time.perf_counter() - system_time, time.process_time() - user_time
-        print()
         print('System time {0:.6f} sec.'.format(system_time))
-        print('User time {0:.6f} sec.'.format(user_time))
+        print('User time {0:.6f} sec.\n'.format(user_time))
         if enable_assert:
             self.assertTrue(system_time < user_time)
 
@@ -692,7 +709,7 @@ class LayersTestCase(MultithreadedTestCase):
         math_engine = neoml.MathEngine.CpuMathEngine()
         dnn = neoml.Dnn.Dnn(math_engine)
         source = neoml.Dnn.Source(dnn, "source")
-        tied = neoml.Dnn.TiedEmbeddings((source,), "embeddings", 0, "tied")
+        tied = neoml.Dnn.TiedEmbeddings((source,), [ "embeddings" ], 0, "tied")
         sink = neoml.Dnn.Sink(tied, "sink")
         layer = dnn.layers['tied']
         self.assertEqual(layer.name, 'tied')
@@ -705,6 +722,8 @@ class LayersTestCase(MultithreadedTestCase):
         self.assertEqual(tied.embeddings_layer_name, "embeddings")
         tied.embeddings_layer_name = "embeddings2"
         self.assertEqual(tied.embeddings_layer_name, "embeddings2")
+        tied.embeddings_layer_path = [ "embeddings3" ]
+        self.assertEqual(tied.embeddings_layer_path, [ "embeddings3" ])
 
     def test_accuracy(self):
         math_engine = neoml.MathEngine.CpuMathEngine()
@@ -1657,7 +1676,7 @@ class LayersTestCase(MultithreadedTestCase):
         dnn = neoml.Dnn.Dnn(math_engine)
         input_data = neoml.Dnn.Source(dnn, 'input_data')
         transformer_encoder = neoml.Dnn.TransformerEncoder(input_data, head_count=2, hidden_size=8,
-            dropout=0.2, feed_forward_size=3, activation='tanh', name='transformer_encoder')
+            dropout=0.2, sa_dropout=0.3, feed_forward_size=3, activation='tanh', pre_norm=False, name='transformer_encoder')
         sink = neoml.Dnn.Sink(transformer_encoder, name='sink')
         # getters/setters tests
         self.assertEqual(transformer_encoder.head_count, 2)
@@ -1669,9 +1688,13 @@ class LayersTestCase(MultithreadedTestCase):
         self.assertAlmostEqual(transformer_encoder.dropout, 0.2, delta=1e-6)
         transformer_encoder.dropout = 0.1
         self.assertAlmostEqual(transformer_encoder.dropout, 0.1, delta=1e-6)
+        self.assertAlmostEqual(transformer_encoder.sa_dropout, 0.3, delta=1e-6)
+        transformer_encoder.sa_dropout = 0.15
+        self.assertAlmostEqual(transformer_encoder.sa_dropout, 0.15, delta=1e-6)
         self.assertEqual(transformer_encoder.feed_forward_size, 3)
         transformer_encoder.feed_forward_size = 15
         self.assertEqual(transformer_encoder.feed_forward_size, 15)
+        self.assertEqual(transformer_encoder.pre_norm, False)
         self.assertEqual(transformer_encoder.name, 'transformer_encoder')
         # run with different mask config
         for step in range(20):
@@ -1688,6 +1711,30 @@ class LayersTestCase(MultithreadedTestCase):
                 dnn.delete_layer('input_mask')
                 input_data_blob = self._transformer_test_data(math_engine, batch_size, list_size_in, obj_size_in, seed=123545+step*5)
                 outputs = dnn.run({'input_data': input_data_blob})
+            self.assertEqual(outputs['sink'].shape, (1, batch_size, list_size_in, 1, 1, 1, obj_size_in))
+
+    def test_transformer_encoder_pre_norm(self):
+        batch_size = 2
+        list_size_in = 13
+        obj_size_in = 11
+        math_engine = neoml.MathEngine.CpuMathEngine()
+        dnn = neoml.Dnn.Dnn(math_engine)
+        input_data = neoml.Dnn.Source(dnn, 'input_data')
+        transformer_encoder = neoml.Dnn.TransformerEncoder(input_data, head_count=5, hidden_size=25,
+            dropout=0.1, sa_dropout=0.15, feed_forward_size=15, activation='tanh', pre_norm=True, name='transformer_encoder_pre')
+        sink = neoml.Dnn.Sink(transformer_encoder, name='sink')
+        # getters/setters tests
+        self.assertEqual(transformer_encoder.head_count, 5)
+        self.assertEqual(transformer_encoder.hidden_size, 25)
+        self.assertAlmostEqual(transformer_encoder.dropout, 0.1, delta=1e-6)
+        self.assertAlmostEqual(transformer_encoder.sa_dropout, 0.15, delta=1e-6)
+        self.assertEqual(transformer_encoder.feed_forward_size, 15)
+        self.assertEqual(transformer_encoder.pre_norm, True)
+        self.assertEqual(transformer_encoder.name, 'transformer_encoder_pre')
+        # run no mask config
+        for step in range(20):
+            input_data_blob = self._transformer_test_data(math_engine, batch_size, list_size_in, obj_size_in, seed=123545+step*5)
+            outputs = dnn.run({'input_data': input_data_blob})
             self.assertEqual(outputs['sink'].shape, (1, batch_size, list_size_in, 1, 1, 1, obj_size_in))
 
     def test_bert_conv(self):
@@ -2856,6 +2903,9 @@ class ClusteringTestCase(MultithreadedTestCase):
 
 
 class TestPca(TestCase):
+    def setUp(self):
+        print(super().id()) # test name
+
     def test_full_svd(self):
         from neoml.PCA import svd
         x = np.array([[2, 1, 3, 2], [2, 4, 4, 1], [2, 4, 1, 1], [4, 4, 3, 4]], dtype=np.float32)
@@ -2953,6 +3003,9 @@ class TestPca(TestCase):
 
 @skipIf(sys.platform == 'darwin', 'Not supposed to work on MacOS')
 class DnnDistributedTestCase(TestCase):
+    def setUp(self):
+        print(super().id()) # test name
+
     def test_distributed(self):
         def set_data(math_engine, thread):
             source = neoml.Blob.asblob(math_engine, np.ones((20,), dtype=np.float32), (1, 1, 1, 1, 1, 1, 20))
@@ -2999,6 +3052,9 @@ class DnnDistributedTestCase(TestCase):
 
 
 class TestBPE(TestCase):
+    def setUp(self):
+        print(super().id()) # test name
+
     def test_saveload(self):
         word_dictionary = [ "aa", "bb", "ab", "a", "b" ]
 
@@ -3044,3 +3100,7 @@ class TestBPE(TestCase):
 
         bpe.cache_period = 10
         self.assertEqual(10, bpe.cache_period)
+
+
+if __name__ == "__main__":
+    main(module="tests")

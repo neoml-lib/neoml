@@ -1,4 +1,4 @@
-/* Copyright © 2017-2021 ABBYY Production LLC
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -31,9 +31,16 @@ public:
 
 	float GetDropoutRate() const { return Layer<CTransformerEncoderLayer>()->GetDropoutRate(); }
 	void SetDropoutRate( float rate ) { Layer<CTransformerEncoderLayer>()->SetDropoutRate( rate ); }
+
+	float GetSelfAttentionDropoutRate() const { return Layer<CTransformerEncoderLayer>()->GetSelfAttentionDropoutRate(); }
+	void SetSelfAttentionDropoutRate( float rate ) { Layer<CTransformerEncoderLayer>()->SetSelfAttentionDropoutRate( rate ); }
 	
 	int GetFeedForwardSize() const { return Layer<CTransformerEncoderLayer>()->GetFeedForwardSize(); }
 	void SetFeedForwardSize( int size ) { Layer<CTransformerEncoderLayer>()->SetFeedForwardSize( size ); }
+
+	// Place of the normalization layer: right after input or before feedForward as usual
+	bool GetPreNorm() const { return Layer<CTransformerEncoderLayer>()->GetPreNorm(); }
+	void SetPreNorm( bool preNorm ) { return Layer<CTransformerEncoderLayer>()->SetPreNorm( preNorm ); }
 
 	py::object CreatePythonObject() const
 	{
@@ -52,7 +59,7 @@ void InitializeTransformerLayer( py::module& m )
 			return new CPyTransformerEncoderLayer( *layer.Layer<CTransformerEncoderLayer>(), layer.MathEngineOwner() );
 		} ) )
 		.def( py::init( []( const std::string& name, const py::list& inputs, const py::list& input_outputs,
-			int headCount, int hiddenSize, float dropout, int feedForwardSize, int activationIndex )
+			int headCount, int hiddenSize, float dropout, float sa_dropout, int feedForwardSize, int activationIndex, bool pre_norm )
 		{
 			py::gil_scoped_release release;
 			CDnn& dnn = inputs[0].cast<CPyLayer>().Dnn();
@@ -62,8 +69,10 @@ void InitializeTransformerLayer( py::module& m )
 			transformer->SetHeadCount( headCount );
 			transformer->SetHiddenSize( hiddenSize );
 			transformer->SetDropoutRate( dropout );
+			transformer->SetSelfAttentionDropoutRate( sa_dropout );
 			transformer->SetFeedForwardSize( feedForwardSize );
 			transformer->SetActivation( static_cast<TActivationFunction>( activationIndex ) );
+			transformer->SetPreNorm( pre_norm );
 			for( int i = 0; i < inputs.size(); i++ ) {
 				transformer->Connect( i, inputs[i].cast<CPyLayer>().BaseLayer(), input_outputs[i].cast<int>() );
 			}
@@ -76,7 +85,11 @@ void InitializeTransformerLayer( py::module& m )
 		.def( "set_hidden_size", &CPyTransformerEncoderLayer::SetHiddenSize, py::return_value_policy::reference )
 		.def( "get_dropout", &CPyTransformerEncoderLayer::GetDropoutRate, py::return_value_policy::reference )
 		.def( "set_dropout", &CPyTransformerEncoderLayer::SetDropoutRate, py::return_value_policy::reference )
+		.def( "get_sa_dropout", &CPyTransformerEncoderLayer::GetSelfAttentionDropoutRate, py::return_value_policy::reference )
+		.def( "set_sa_dropout", &CPyTransformerEncoderLayer::SetSelfAttentionDropoutRate, py::return_value_policy::reference )
 		.def( "get_feed_forward_size", &CPyTransformerEncoderLayer::GetFeedForwardSize, py::return_value_policy::reference )
 		.def( "set_feed_forward_size", &CPyTransformerEncoderLayer::SetFeedForwardSize, py::return_value_policy::reference )
+		.def( "get_pre_norm", &CPyTransformerEncoderLayer::GetPreNorm, py::return_value_policy::reference )
+		.def( "set_pre_norm", &CPyTransformerEncoderLayer::SetPreNorm, py::return_value_policy::reference )
 	;
 }

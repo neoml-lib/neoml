@@ -1,4 +1,4 @@
-""" Copyright (c) 2017-2020 ABBYY Production LLC
+""" Copyright (c) 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -14,7 +14,6 @@ limitations under the License.
 --------------------------------------------------------------------------------------------------------------
 """
 
-import numpy
 import neoml.PythonWrapper as PythonWrapper
 from .Dnn import Layer
 from .Initializer import Initializer
@@ -135,7 +134,7 @@ class MultichannelLookup(Layer):
         than the one set for the whole network in general.
         """
         if initializer is None:
-            return self._internal.clear()
+            self._internal.clear()
     
         if not isinstance(initializer, Initializer):
             raise ValueError('The `initializer` must be an Initializer.')

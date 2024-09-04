@@ -1,4 +1,4 @@
-""" Copyright (c) 2017-2020 ABBYY Production LLC
+""" Copyright (c) 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -18,7 +18,7 @@ import neoml
 import neoml.PythonWrapper as PythonWrapper
 from neoml.MathEngine import MathEngine
 from neoml.Blob import Blob
-import numpy
+import numpy as np
 
 # ----------------------------------------------------------------------------------------------------------------------
 
@@ -28,15 +28,15 @@ def const(math_engine, shape, data):
     if not isinstance(math_engine, MathEngine):
         raise ValueError('The `math_engine` should be neoml.MathEngine.')
 
-    np_shape = numpy.array(shape, dtype=numpy.int32, copy=False)
+    np_shape = np.asarray(shape, dtype=np.int32)
 
     if len(np_shape) > 7:
         raise ValueError('The `shape` should have not more than 7 dimensions.')
 
-    if numpy.isscalar(data):
+    if np.isscalar(data):
         return Blob(PythonWrapper.blob_const(math_engine._internal, np_shape, float(data)))
 
-    np_data = numpy.array(data, dtype=numpy.float32, copy=False, order='C')
+    np_data = np.asarray(data, dtype=np.float32, order='C')
 
     if len(np_data.shape) > 7:
         raise ValueError('The `shape` should have not more than 7 dimensions.')
@@ -99,7 +99,7 @@ def sum(a, axes=None):
     if a.size == 0:
         raise ValueError("The blob shouldn't be empty.")
 
-    axes = numpy.array([] if axes is None else axes, dtype=numpy.int32)
+    axes = np.array([] if axes is None else axes, dtype=np.int32)
     if not neoml.Utils.check_axes(axes):
         raise ValueError("`axes` should be unique and in range [0, 6].")
 
@@ -129,7 +129,7 @@ def mean(a, axes=None):
     if a.size == 0:
         raise ValueError("The blob shouldn't be empty.")
 
-    axes = numpy.array([] if axes is None else axes, dtype=numpy.int32)
+    axes = np.array([] if axes is None else axes, dtype=np.int32)
     if not neoml.Utils.check_axes(axes):
         raise ValueError("`axes` should be unique and in range [0, 6].")
 
@@ -207,7 +207,7 @@ def broadcast(blob, shape):
     if blob.size == 0:
         raise ValueError("The blobs mustn't be empty.")
 
-    np_shape = numpy.array(shape, dtype=numpy.int32, copy=False)
+    np_shape = np.asarray(shape, dtype=np.int32)
 
     if len(np_shape) > 7:
         raise ValueError('The `shape` should have not more than 7 dimensions.')
@@ -227,12 +227,12 @@ def reshape(blob, shape):
     if blob.size == 0:
         raise ValueError("The blobs mustn't be empty.")
 
-    np_shape = numpy.array(shape, dtype=numpy.int32, copy=False)
+    np_shape = np.asarray(shape, dtype=np.int32)
 
     if len(np_shape) > 7:
         raise ValueError('The `shape` should have not more than 7 dimensions.')
 
-    if numpy.prod(np_shape) != blob.size:
+    if np.prod(np_shape) != blob.size:
         raise ValueError('`shape` is incompatible with current size.')
 
     PythonWrapper.blob_reshape(blob._internal, np_shape)
