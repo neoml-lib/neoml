@@ -1,4 +1,4 @@
-""" Copyright (c) 2017-2020 ABBYY Production LLC
+""" Copyright (c) 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -17,7 +17,6 @@ limitations under the License.
 import neoml.PythonWrapper as PythonWrapper
 from .Dnn import Layer
 from neoml.Utils import check_input_layers
-import neoml.Blob as Blob
 
 
 class SpaceToDepth(Layer):

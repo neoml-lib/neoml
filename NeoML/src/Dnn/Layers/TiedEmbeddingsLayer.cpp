@@ -1,4 +1,4 @@
-/* Copyright © 2017-2024 ABBYY Production LLC
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -21,8 +21,6 @@ limitations under the License.
 
 namespace NeoML {
 
-////////////////////////////////////////////////////////////////////////////////////////////////////
-
 CTiedEmbeddingsLayer::CTiedEmbeddingsLayer( IMathEngine& mathEngine ) :
 	CBaseLayer( mathEngine, "CTiedEmbeddingsLayer", true ),
 	channelIndex( 0 )
@@ -36,11 +34,11 @@ void CTiedEmbeddingsLayer::SetChannelIndex( int val )
 	channelIndex = val;
 }
 
-static const int CnnTiedEmbeddingsLayerVersion = 2001;
+constexpr int TiedEmbeddingsLayerVersion = 2001;
 
 void CTiedEmbeddingsLayer::Serialize( CArchive& archive )
 {
-	int version = archive.SerializeVersion(CnnTiedEmbeddingsLayerVersion, CDnn::ArchiveMinSupportedVersion);
+	const int version = archive.SerializeVersion( TiedEmbeddingsLayerVersion, CDnn::ArchiveMinSupportedVersion );
 	CBaseLayer::Serialize( archive );
 
 	if (version < 2001 && archive.IsLoading()) {
@@ -173,5 +171,4 @@ CLayerWrapper<CTiedEmbeddingsLayer> TiedEmbeddings( const char* name, int channe
 	} );
 }
 
-////////////////////////////////////////////////////////////////////////////////////////////////////
 } // namespace NeoML

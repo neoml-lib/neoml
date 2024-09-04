@@ -1,4 +1,4 @@
-/* Copyright © 2017-2021 ABBYY Production LLC
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -219,7 +219,8 @@ py::array_t<double> CPyRegressionModel::Predict( py::array indices, py::array da
 		}
 	}
 
-	py::array_t<double, py::array::c_style> totalResult( rowCount );
+	py::array_t<double, py::array::c_style> totalResult( py::ssize_t{ rowCount } );
+	NeoAssert( rowCount == totalResult.size() );
 	auto r = totalResult.mutable_unchecked<1>();
 	for( int i = 0; i < rowCount; i++ ) {
 		r(i) = resultPredictions[i];
@@ -562,12 +563,12 @@ void InitializeTrainingModel(py::module& m)
 			TScore score = scoreName == "f1" ? F1Score : AccuracyScore;
 			crossValidation.Execute( parts, score, results, stratified );
 		}
-		py::array_t<double, py::array::c_style> scores( results.Success.Size() );
+		py::array_t<double, py::array::c_style> scores( py::ssize_t{ results.Success.Size() } );
+		NeoAssert( results.Success.Size() == scores.size() );
 		auto tempScores = scores.mutable_unchecked<1>();
 		for( int i = 0; i < results.Success.Size(); i++ ) {
 			tempScores(i) = results.Success[i];
 		}
-
 		return scores;
 	});
 
