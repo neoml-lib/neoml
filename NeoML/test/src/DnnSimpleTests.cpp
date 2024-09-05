@@ -17,6 +17,7 @@ limitations under the License.
 #pragma hdrstop
 
 #include <TestFixture.h>
+#include <DnnSimpleTest.h>
 
 using namespace NeoML;
 using namespace NeoMLTest;
@@ -74,26 +75,7 @@ static void rebuildDnn( CDnn& dnn )
 
 //---------------------------------------------------------------------------------------------------------------------
 
-class CDnnSimpleTestDummyLearningLayer : public CBaseLayer {
-	NEOML_DNN_LAYER( CDnnSimpleTestDummyLearningLayer )
-public:
-	CPtr<CDnnBlob> ExpectedDiff;
-	CPtr<CDnnBlob> ActualDiff;
-
-	explicit CDnnSimpleTestDummyLearningLayer( IMathEngine& mathEngine ) :
-		CBaseLayer( mathEngine, "CDnnSimpleTestDummyLearningLayer", true ) {}
-	void Serialize( CArchive& archive ) override;
-
-protected:
-	void Reshape() override;
-	void RunOnce() override { outputBlobs[0]->CopyFrom( inputBlobs[0] ); };
-	void BackwardOnce() override;
-	void LearnOnce() override;
-};
-
 REGISTER_NEOML_LAYER( CDnnSimpleTestDummyLearningLayer, "NeoMLDnnSimpleTestDummyLearningLayer" )
-
-//---------------------------------------------------------------------------------------------------------------------
 
 void CDnnSimpleTestDummyLearningLayer::Serialize( CArchive& archive )
 {
@@ -148,31 +130,7 @@ void CDnnSimpleTestDummyLearningLayer::LearnOnce()
 
 //---------------------------------------------------------------------------------------------------------------------
 
-class CDnnSimpleTestDummyLossLayer : public CLossLayer {
-	NEOML_DNN_LAYER( CDnnSimpleTestDummyLossLayer )
-public:
-	CPtr<CDnnBlob> Diff;
-
-	explicit CDnnSimpleTestDummyLossLayer( IMathEngine& mathEngine ) :
-		CLossLayer( mathEngine, "CDnnSimpleTestDummyLossLayer" ) {}
-	void Serialize( CArchive& archive ) override;
-
-protected:
-	void BatchCalculateLossAndGradient( int batchSize, CConstFloatHandle, int vectorSize,
-		CConstIntHandle, int, CFloatHandle lossValue, CFloatHandle lossGradient ) override;
-
-	void BatchCalculateLossAndGradient( int batchSize, CConstFloatHandle data, int vectorSize,
-		CConstFloatHandle label, int labelSize, CFloatHandle lossValue, CFloatHandle lossGradient ) override
-	{ BatchCalculateLossAndGradient( batchSize, data, vectorSize, label, labelSize, lossValue, lossGradient, CFloatHandle{} ); }
-
-	void BatchCalculateLossAndGradient( int batchSize, CConstFloatHandle data, int vectorSize,
-		CConstFloatHandle label, int labelSize, CFloatHandle lossValue, CFloatHandle lossGradient,
-		CFloatHandle labelLossGradient ) override;
-};
-
 REGISTER_NEOML_LAYER( CDnnSimpleTestDummyLossLayer, "NeoMLDnnSimpleTestDummyLossLayer" )
-
-//---------------------------------------------------------------------------------------------------------------------
 
 void CDnnSimpleTestDummyLossLayer::Serialize( CArchive& archive )
 {
