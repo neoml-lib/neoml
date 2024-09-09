@@ -156,12 +156,16 @@ const CMultichannelLookupLayer* CTiedEmbeddingsLayer::getLookUpLayer() const
 	return embeddingsLayer;
 }
 
-CLayerWrapper<CTiedEmbeddingsLayer> TiedEmbeddings( const char* name, int channel )
+CLayerWrapper<CTiedEmbeddingsLayer> TiedEmbeddings( const char* name, int channel, CArray<CString>&& embeddingPath )
 {
-	return CLayerWrapper<CTiedEmbeddingsLayer>( "TiedEmbeddings", [=]( CTiedEmbeddingsLayer* result ) {
-		result->SetEmbeddingsLayerName( name );
-		result->SetChannelIndex( channel );
-	} );
+	return CLayerWrapper<CTiedEmbeddingsLayer>( "TiedEmbeddings",
+		[=, path=std::move( embeddingPath )]( CTiedEmbeddingsLayer* result )
+		{
+			result->SetEmbeddingsLayerName( name );
+			result->SetChannelIndex( channel );
+			result->SetEmbeddingsLayerPath( path );
+		}
+	);
 }
 
 } // namespace NeoML

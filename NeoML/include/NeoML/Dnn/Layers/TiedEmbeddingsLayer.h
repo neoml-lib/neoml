@@ -71,6 +71,7 @@ private:
 };
 
 // Tied embeddings.
-NEOML_API CLayerWrapper<CTiedEmbeddingsLayer> TiedEmbeddings( const char* name, int channel );
+NEOML_API CLayerWrapper<CTiedEmbeddingsLayer> TiedEmbeddings( const char* name, int channel,
+	CArray<CString>&& embeddingPath = {} );
 
 } // namespace NeoML
