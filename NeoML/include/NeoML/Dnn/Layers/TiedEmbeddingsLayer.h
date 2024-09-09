@@ -27,7 +27,8 @@ class CMultichannelLookupLayer;
 class NEOML_API CTiedEmbeddingsLayer : public CBaseLayer {
 	NEOML_DNN_LAYER( CTiedEmbeddingsLayer )
 public:
-	explicit CTiedEmbeddingsLayer( IMathEngine& mathEngine );
+	explicit CTiedEmbeddingsLayer( IMathEngine& mathEngine ) :
+		CBaseLayer( mathEngine, "CTiedEmbeddingsLayer", /*isLearnable*/true ) {}
 
 	void Serialize( CArchive& archive ) override;
 	
@@ -54,6 +55,8 @@ protected:
 	void LearnOnce() override;
 	int BlobsForBackward() const override { return 0; }
 	int BlobsForLearn() const override { return TInputBlobs; }
+	// Special case, specialization for transferParamsBlob
+	bool IsLearnableWithEmptyParamBlobs() const override { return true; }
 
 private:
 	// Path for embedding layer from which matrix is taken
@@ -61,10 +64,10 @@ private:
 	// So in case of no composite layer it is gonna be { "embeddingName" }
 	CArray<CString> embeddingPath;
 	// Channel index in embedding layer.
-	int channelIndex;
+	int channelIndex = 0;
 
 	const CDnnBlob* getEmbeddingsTable() const;
-	CMultichannelLookupLayer* getLookUpLayer() const;
+	const CMultichannelLookupLayer* getLookUpLayer() const;
 };
 
 // Tied embeddings.
