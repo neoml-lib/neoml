@@ -19,6 +19,10 @@ limitations under the License.
 #include <NeoML/ArchiveFile.h>
 #include <NeoML/Dnn/Dnn.h>
 
+namespace NeoMLTest {
+struct CDistributedTrainingTest;
+}
+
 namespace NeoML {
 
 // Forward declaration
@@ -124,6 +128,7 @@ private:
 	void initialize( CArchive& archive, int count, TDistributedInitializer initializer, int seed );
 
 	friend class CLoraSerializer;
+	friend struct ::NeoMLTest::CDistributedTrainingTest;
 };
 
 //---------------------------------------------------------------------------------------------------------------------
