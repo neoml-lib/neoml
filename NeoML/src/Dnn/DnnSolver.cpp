@@ -140,7 +140,7 @@ CDnnSolver::CDnnSolver( IMathEngine& _mathEngine ) :
 }
 
 // Calculates the layer parameter gradients to then use them in Train method
-void CDnnSolver::AddDiff( CBaseLayer* layer, const CObjectArray<CDnnBlob>& paramDiffBlobs, bool sharedWeights )
+void CDnnSolver::AddDiff( const CBaseLayer* layer, const CObjectArray<CDnnBlob>& paramDiffBlobs, bool sharedWeights )
 {
 	NeoAssert( layer != nullptr );
 	if( MathEngine().IsDistributed() && !layersToReduce.Has( layer ) ) {

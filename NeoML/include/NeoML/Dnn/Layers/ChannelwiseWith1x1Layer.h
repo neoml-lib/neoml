@@ -58,7 +58,7 @@ protected:
 	void RunOnce() override;
 	void BackwardOnce() override { NeoAssert( false ); }
 	// Specialization for transferParamsBlob
-	bool ContainsEmptyParamBlob( int i ) const override
+	bool ContainsNullParamBlob( int i ) const override
 		{ return paramBlobs[i] == nullptr && ( i == P_ChannelwiseFreeTerm || i == P_ConvFreeTerm ); }
 
 private:
