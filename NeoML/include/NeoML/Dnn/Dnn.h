@@ -241,8 +241,10 @@ protected:
 	bool IsBackwardPerformed() const;
 	// Indicates that backpropagation must be performed for the layer when Learn method is called
 	bool IsBackwardNeeded() const;
-	// Layer may contain empty paramBlob of given index
-	virtual bool ContainsEmptyParamBlob( int ) const { return false; }
+	// Layer may contain null paramBlob of given index, specialization for transferParamsBlob
+	virtual bool ContainsNullParamBlob( int ) const { return false; }
+	// Special case, specialization for transferParamsBlob
+	virtual bool IsLearnableWithEmptyParamBlobs() const { return false; }
 	// Gets a pointer to the layer connected to the given input
 	CBaseLayer* GetInputLayer(int input) { return inputLinks[input].Layer; }
 	const CBaseLayer* GetInputLayer(int input) const { return inputLinks[input].Layer; }
