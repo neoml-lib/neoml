@@ -98,32 +98,29 @@ using TPtrOwnerReferenceDnnInfo = CPtrOwner<CReferenceDnnInfo, CReferenceDnnInfo
 //------------------------------------------------------------------------------------------------------------
 
 // The link between two layers, connecting one layer output to another layer input
-struct CDnnLayerLink {
+struct CDnnLayerLink final {
 	// the pointer to the linked layer
 	CBaseLayer* Layer;
 	// the number of the output to which the connection leads
-	int OutputNumber;
+	int OutputNumber = -1;
 
 	// Default value for optional inputs.
-	CDnnLayerLink() : Layer( 0 ), OutputNumber( -1 ) {}
-	CDnnLayerLink( const CDnnLayerLink& other ) :
-		Layer( other.Layer ), OutputNumber( other.OutputNumber ) {}
-	CDnnLayerLink( CBaseLayer* layer, int outputNumber ) :
+	CDnnLayerLink() = default;
+	// Be copied and moved by default
+
+	// Converting constructor
+	CDnnLayerLink( CBaseLayer* layer, int outputNumber = 0 ) :
 		Layer( layer ),
 		OutputNumber( outputNumber )
 	{
-		NeoAssert( Layer != 0 );
+		NeoAssert( Layer != nullptr );
 		NeoAssert( OutputNumber >= 0 );
 	}
 
-	// Converting constructor
-	CDnnLayerLink( CBaseLayer* layer ) :
-		Layer( layer ), OutputNumber( 0 ) {}
-
 	// Is this layer optional, i.e. created by CLayerOutout() default constructor.
-	bool IsOptional() const { return Layer == 0 && OutputNumber == -1; }
+	bool IsOptional() const { return Layer == nullptr && OutputNumber == -1; }
 	// Is the layer output valid?
-	bool IsValid() const { return Layer != 0 && OutputNumber >= 0; }
+	bool IsValid() const { return Layer != nullptr && OutputNumber >= 0; }
 };
 
 //------------------------------------------------------------------------------------------------------------
@@ -244,8 +241,10 @@ protected:
 	bool IsBackwardPerformed() const;
 	// Indicates that backpropagation must be performed for the layer when Learn method is called
 	bool IsBackwardNeeded() const;
-	// Layer may contain empty paramBlob of given index
-	virtual bool ContainsEmptyParamBlob( int ) const { return false; }
+	// Layer may contain null paramBlob of given index, specialization for transferParamsBlob
+	virtual bool ContainsNullParamBlob( int ) const { return false; }
+	// Special case, specialization for transferParamsBlob
+	virtual bool IsLearnableWithEmptyParamBlobs() const { return false; }
 	// Gets a pointer to the layer connected to the given input
 	CBaseLayer* GetInputLayer(int input) { return inputLinks[input].Layer; }
 	const CBaseLayer* GetInputLayer(int input) const { return inputLinks[input].Layer; }

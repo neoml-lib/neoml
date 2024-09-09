@@ -21,12 +21,6 @@ limitations under the License.
 
 namespace NeoML {
 
-CTiedEmbeddingsLayer::CTiedEmbeddingsLayer( IMathEngine& mathEngine ) :
-	CBaseLayer( mathEngine, "CTiedEmbeddingsLayer", true ),
-	channelIndex( 0 )
-{
-}
-
 void CTiedEmbeddingsLayer::SetChannelIndex( int val )
 {
 	NeoAssert( val >= 0 );
@@ -131,7 +125,7 @@ void CTiedEmbeddingsLayer::LearnOnce()
 		diffBlob->Clear();
 	}
 
-	CMultichannelLookupLayer* embeddingsLayer = getLookUpLayer();
+	const CMultichannelLookupLayer* embeddingsLayer = getLookUpLayer();
 	CObjectArray<CDnnBlob> totalDiffBlobs;
 	const int channelsCount = embeddingsLayer->GetDimensions().Size();
 	for( int i = 0; i < channelsCount; i++ ) {
@@ -144,7 +138,7 @@ void CTiedEmbeddingsLayer::LearnOnce()
 		}
 	}
 
-	GetDnn()->GetSolver()->AddDiff( embeddingsLayer, totalDiffBlobs, true );
+	GetDnn()->GetSolver()->AddDiff( embeddingsLayer, totalDiffBlobs, /*sharedWeights*/true );
 }
 
 // Embeddings matrix
@@ -155,20 +149,23 @@ const CDnnBlob* CTiedEmbeddingsLayer::getEmbeddingsTable() const
 	return getLookUpLayer()->GetEmbeddings( channelIndex );
 }
 
-CMultichannelLookupLayer* CTiedEmbeddingsLayer::getLookUpLayer() const
+const CMultichannelLookupLayer* CTiedEmbeddingsLayer::getLookUpLayer() const
 {
-	CMultichannelLookupLayer* embeddingsLayer;
-	embeddingsLayer = CheckCast<CMultichannelLookupLayer>(
-		const_cast<CDnn*>(GetDnn())->GetLayer(embeddingPath).Ptr());
+	const CMultichannelLookupLayer* embeddingsLayer
+		= CheckCast<CMultichannelLookupLayer>( GetDnn()->GetLayer( embeddingPath ).Ptr() );
 	return embeddingsLayer;
 }
 
-CLayerWrapper<CTiedEmbeddingsLayer> TiedEmbeddings( const char* name, int channel )
+CLayerWrapper<CTiedEmbeddingsLayer> TiedEmbeddings( const char* name, int channel, CArray<CString>&& embeddingPath )
 {
-	return CLayerWrapper<CTiedEmbeddingsLayer>( "TiedEmbeddings", [=]( CTiedEmbeddingsLayer* result ) {
-		result->SetEmbeddingsLayerName( name );
-		result->SetChannelIndex( channel );
-	} );
+	return CLayerWrapper<CTiedEmbeddingsLayer>( "TiedEmbeddings",
+		[=, path=std::move( embeddingPath )]( CTiedEmbeddingsLayer* result )
+		{
+			result->SetEmbeddingsLayerName( name );
+			result->SetChannelIndex( channel );
+			result->SetEmbeddingsLayerPath( path );
+		}
+	);
 }
 
 } // namespace NeoML
