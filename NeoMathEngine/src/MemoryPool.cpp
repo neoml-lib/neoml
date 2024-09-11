@@ -156,14 +156,14 @@ void CMemoryPool::Free( const CMemoryHandle& handle )
 	TUsedAddressMap::const_iterator it = usedMap.find( GetRaw( handle ) );
 	const CUsedInfo& info = it->second;
 
-	if( info.buffer != nullptr ) {
-		CMemoryBufferPool* const pool = info.buffer->OwnerPool;
-		pool->Free( info.buffer );
+	if( info.HasPoolBuffer() ) {
+		CMemoryBufferPool* const pool = info.Buffer()->OwnerPool;
+		pool->Free( info.Buffer() );
 		freeMemorySize += pool->BufferSize;
 	} else {
 		// Large buffer, don't use the pool
-		freeMemory( info.size, handle );
-		freeMemorySize += info.size;
+		freeMemory( info.Size(), handle );
+		freeMemorySize += info.Size();
 	}
 	usedMap.erase( it );
 }
@@ -189,9 +189,9 @@ void CMemoryPool::TransferHandleToThisThread( const CMemoryHandle& handle, size_
 	TUsedAddressMap::iterator usedMapIt = usedMap.find( GetRaw( handle ) );
 	CUsedInfo& info = usedMapIt->second;
 
-	if( info.buffer != nullptr ) {
+	if( info.HasPoolBuffer() ) {
 		// Find the buffer pool to steal from
-		CMemoryBufferPool* otherThreadBufferPool = info.buffer->OwnerPool;
+		CMemoryBufferPool* otherThreadBufferPool = info.Buffer()->OwnerPool;
 		ASSERT_EXPR( size <= otherThreadBufferPool->BufferSize );
 		size = otherThreadBufferPool->BufferSize; // set actual allocated size
 
@@ -200,7 +200,7 @@ void CMemoryPool::TransferHandleToThisThread( const CMemoryHandle& handle, size_
 		if( !thisThreadData.Enabled ) {
 			// Transfer the handle from that thread's pool just to heap, so
 			// it wouldn't be cleaned-up for that thread after mathEngine.CleanUp().
-			delete info.buffer;
+			delete info.Buffer();
 			info = CUsedInfo( size );
 		} else {
 			// Find the buffer in this thread's pool to append it to
@@ -212,11 +212,11 @@ void CMemoryPool::TransferHandleToThisThread( const CMemoryHandle& handle, size_
 				}
 			}
 			// Transfer the handle from other thread-owner to this thread-owner
-			info.buffer->OwnerPool = thisThreadBufferPool;
+			info.Buffer()->OwnerPool = thisThreadBufferPool;
 		}
 	} else { // Large buffers don't use the pools
 		const size_t validSize = *std::lower_bound( std::begin( BufferSizes ), std::end( BufferSizes ), size );
-		ASSERT_EXPR( size == info.size || validSize  == info.size );
+		ASSERT_EXPR( size == info.Size() || validSize  == info.Size() );
 		// No need to transfer, because
 		// it wouldn't be cleaned-up for that thread after mathEngine.CleanUp().
 	}

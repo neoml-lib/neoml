@@ -69,6 +69,7 @@ bool LoadVulkanEngineInfo( const CVulkanDll& dll, std::vector< CMathEngineInfo, 
 constexpr int VulkanMemoryAlignment = 16;
 
 CVulkanMathEngine::CVulkanMathEngine( std::unique_ptr<const CVulkanDevice>& _device, size_t memoryLimit ) :
+	CMemoryEngineMixin( 0 ),
 	dllLoader( CDllLoader::VULKAN_DLL ),
 	device( std::move( _device ) ),
 	tmpImages( TVI_Count, nullptr )

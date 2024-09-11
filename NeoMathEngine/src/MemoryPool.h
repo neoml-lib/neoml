@@ -81,11 +81,22 @@ private:
 	>;
 	// The information about a memory block address
 	struct CUsedInfo final {
-		size_t size = 0;
-		CMemoryBuffer* buffer = nullptr;
-
-		CUsedInfo( size_t _size = 0 ) : size( _size ) {}
+		// Either the size of heap memory block
+		CUsedInfo( size_t _size = 0 ) : size( _size | flag ) { ASSERT_EXPR( _size < flag ); }
+		// Or the address to memory block buffer
 		CUsedInfo( CMemoryBuffer* _buffer ) : buffer( _buffer ) {}
+
+		CMemoryBuffer* Buffer() const { return buffer; }
+		size_t Size() const { return size & ~flag; }
+		bool HasPoolBuffer() const { return !( size & flag ); }
+
+	private:
+		// Flag to signal that in unipn is a size, not a buffer
+		static constexpr size_t flag = size_t( 1 ) << ( sizeof( size_t ) * 8 - 1 );
+		union { // Either the size, or a buffer (8 bytes size structure)
+			size_t size;
+			CMemoryBuffer* buffer;
+		};
 	};
 	// The memory blocks addresses map
 	using TUsedAddressMap = std::unordered_map<

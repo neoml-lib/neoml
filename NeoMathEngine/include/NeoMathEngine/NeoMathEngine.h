@@ -1234,7 +1234,7 @@ public:
 	// This object should be destroyed using the standard delete operator after use.
 	virtual IPerformanceCounters* CreatePerformanceCounters( bool isTimeOnly = false ) const = 0;
 
-	// For Distributed only
+	// Methods group for the DnnDistributed execution only
 	virtual CMathEngineDistributedInfo GetDistributedInfo() { return CMathEngineDistributedInfo(); }
 	virtual void AllReduce( const CFloatHandle& handle, int size ) = 0;
 	virtual void Broadcast( const CFloatHandle& handle, int size, int root ) = 0;

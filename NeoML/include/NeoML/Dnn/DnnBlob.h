@@ -34,9 +34,9 @@ namespace NeoML {
 
 class NEOML_API CDnnBlob : public IObject {
 public:
-	explicit CDnnBlob( IMathEngine& mathEngine );
+	explicit CDnnBlob( IMathEngine& mathEngine ) : mathEngine( mathEngine ) {}
 
-	// Move other's Blob state to this Blob and transfer its data (if dataOwned) to this thread
+	// Move other's Blob state to this Blob and transfer its data to this thread
 	CDnnBlob( CDnnBlob&& other );
 	CDnnBlob& operator=( CDnnBlob&& other );
 
@@ -65,7 +65,7 @@ public:
 	static CDnnBlob* CreateBlob(IMathEngine& mathEngine, TBlobType type, const CBlobDesc& pattern);
 
 	// Checks if the dimensions of another blob are the same
-	bool HasEqualDimensions(const CDnnBlob* other) const;
+	bool HasEqualDimensions( const CDnnBlob* other ) const { return desc.HasEqualDimensions( other->desc ); }
 
 	// Gets the blob size along the specified dimension
 	int DimSize(int d) const { return desc.DimSize(d); }
@@ -143,7 +143,7 @@ public:
 	// Transfers CDnnBlob data from other thread owner to this thread.
 	// By default memory underneath each blob is associated with the thread on which its allocation has occurred.
 	// This method switches this association to the calling thread.
-	void TransferDataToThisThread();
+	virtual void TransferDataToThisThread();
 
 	// Elementwise adds a blob of the same dimensions
 	void Add(const CDnnBlob* other);
@@ -165,7 +165,7 @@ public:
 	// Changes the blob dimensions "names" without moving the data
 	// In effect, only the blob description is changed
 	// As the data is unaffected, the total blob size specified by the new descriptor should be the same
-	void ReinterpretDimensions( const CBlobDesc& newDesc );
+	virtual void ReinterpretDimensions( const CBlobDesc& newDesc );
 
 	// Merges blobs along the given dimension
 	static void MergeByDim( IMathEngine& mathEngine, TBlobDim d, const CObjectArray<CDnnBlob>& from, const CPtr<CDnnBlob>& to );
@@ -193,31 +193,31 @@ public:
 
 	// Gets the pointer to the MathEngine on which the blob was created
 	IMathEngine& GetMathEngine() const { return mathEngine; }
-
 	// Gets the blob descriptor
 	const CBlobDesc& GetDesc() const { return desc; }
 	// Gets the type of data in the blob
 	TBlobType GetDataType() const { return desc.GetDataType(); }
 
-	// Gets the parent blob
-	CDnnBlob* GetParent() { return parent; }
-	const CDnnBlob* GetParent() const { return parent; }
-	// Gets the blob that owns the data (and has no parent)
-	CDnnBlob* GetOwner();
-	const CDnnBlob* GetOwner() const { return const_cast<CDnnBlob*>(this)->GetOwner(); }
+	// All methods below are just the interface for the CDnnWindowBlob representation
 
+	// Gets the parent blob
+	virtual CDnnBlob* GetParent() { return nullptr; }
+	const CDnnBlob* GetParent() const { return const_cast<CDnnBlob*>( this )->GetParent(); }
+	// Gets the blob that owns the data (and has no parent)
+	virtual CDnnBlob* GetOwner() { return this; }
+	const CDnnBlob* GetOwner() const { return const_cast<CDnnBlob*>( this )->GetOwner(); }
 	// Gets the shift in data relative to the parent blob
 	// The position in the parent blob is calculated along the BatchLength dimension
 	// The position equal to N would correspond to a N*BatchWidth*ListSize*Height*Width*Depth*Channels shift in the one-dimensional array
-	int GetParentPos() const;
-	void SetParentPos( int pos );
-	void ShiftParentPos( int shift );
+	virtual int GetParentPos() const { return 0; }
+	virtual void SetParentPos( int /*pos*/ ) { NeoAssert( false ); }
+	virtual void ShiftParentPos( int /*shift*/ ) { NeoAssert( false ); }
 
 protected:
 	~CDnnBlob() override;
 
-	CDnnBlob( IMathEngine& _mathEngine, const CBlobDesc& _desc, CMemoryHandle _data, bool _dataOwned ) :
-		mathEngine( _mathEngine ), desc( _desc ), data( _data ), dataOwned( _dataOwned ), parentPos( 0 )
+	CDnnBlob( IMathEngine& _mathEngine, const CBlobDesc& _desc, CMemoryHandle _data ) :
+		mathEngine( _mathEngine ), desc( _desc ), data( _data )
 	{
 		NeoAssert( desc.GetDataType() != CT_Invalid );
 		NeoAssert( &mathEngine == data.GetMathEngine() );
@@ -230,23 +230,80 @@ private:
 	CBlobDesc desc;
 	// Pointer to the allocated data storage
 	CMemoryHandle data;
-	// Ownership of the `data`, it means that it has full access to write and to free the allocated data storage
-	// Either `dataOwned` is true and `parent` is 0
-	// Or `dataOwned` is false and `parent` is pointer to blob that owns the allocated data storage
-	bool dataOwned;
-	// Pointer to blob with data for sequential recurent mode or reference dnn's paramBlobs
-	CPtr<CDnnBlob> parent;
-	// Offset in `parent` blob for sequential recurent mode, move window by BatchLength of the parent blob
-	int parentPos;
 
 	void initializeBlob(TBlobType _type, int batchLength, int batchWidth, int listSize, int height, int width,
 		int depth, int channels);
 	void initializeTensor(TBlobType _type, std::initializer_list<int> dimensions);
-	void initializeWindow(const CPtr<CDnnBlob>& _parent, int windowSize);
 	void initializeByPattern(TBlobType type, const CBlobDesc& pattern);
 
 	friend class CDnnBlobClassRegistrar;
+	friend class CDnnWindowBlob;
+	friend class CDnnBlobView;
 };
+
+//---------------------------------------------------------------------------------------------------------------------
+
+// The kind of CDnnBlob does not own the data
+// CDnnBlobView does not clear data handler
+// Used in python wrappers
+class NEOML_API CDnnBlobView : public CDnnBlob {
+protected:
+	CDnnBlobView( IMathEngine& mathEngine ) : CDnnBlob( mathEngine ) {}
+	CDnnBlobView( IMathEngine& mathEngine, const CBlobDesc& desc, CMemoryHandle data ) :
+		CDnnBlob( mathEngine, desc, data )
+	{}
+
+	~CDnnBlobView() { if( !data.IsNull() ) { data = CMemoryHandle{}; } } // no need to free
+
+	// Prohibited methods
+	//void ReinterpretDimensions( const CBlobDesc& ) override { NeoAssert( false ); } // impossible !!! USED in Python !!!
+	//void Serialize( CArchive& ) override // !!! PICKLED in Python !!!
+	//{ NeoAssert( false ); } // a blob that links to another may not be serialized
+	void TransferDataToThisThread() override {} // !!! MOVED in Python !!!
+};
+
+//---------------------------------------------------------------------------------------------------------------------
+
+// The kind of CDnnBlob that is view of the some parent Blob as sequence (BatchLength > 1).
+// This CDnnWindowBlob do not owner of its memory, technical CDnnBlob representation.
+// This CDnnWindowBlob represents 1 element (BatchLength == 1) of the sequence for the recursive networks.
+class NEOML_API CDnnWindowBlob : public CDnnBlob {
+public:
+	// Creates a "window" blob to represent a subsequence of objects from the parent blob
+	static CDnnBlob* CreateWindowBlob( const CPtr<CDnnBlob>& parent, int windowSize = 1 );
+
+	// Prohibited methods
+	void ReinterpretDimensions( const CBlobDesc& ) override { NeoAssert( false ); } // impossible
+	void Serialize( CArchive& ) override { NeoAssert( false ); } // a blob that links to another may not be serialized
+	void TransferDataToThisThread() override { NeoAssert( false ); }
+
+	// Interface of communication
+	CDnnBlob* GetParent() override { return parent; }
+	CDnnBlob* GetOwner() override;
+	int GetParentPos() const override;
+	void SetParentPos( int pos ) override;
+	void ShiftParentPos( int shift ) override;
+
+protected:
+	CDnnWindowBlob( IMathEngine& mathEngine ) : CDnnBlob( mathEngine ) {}
+	CDnnWindowBlob( IMathEngine& mathEngine, const CBlobDesc& desc, CMemoryHandle data ) :
+		CDnnBlob( mathEngine, desc, data )
+	{}
+	CDnnWindowBlob( CDnnWindowBlob&& other ) = delete;
+	CDnnWindowBlob& operator=( CDnnWindowBlob&& other ) = delete;
+
+	~CDnnWindowBlob() { if( parent != nullptr ) { data = CMemoryHandle{}; } } // no need to free
+
+private:
+	// Pointer to blob with data for sequential recurent mode or reference dnn's paramBlobs
+	CPtr<CDnnBlob> parent;
+	// Offset in `parent` blob for sequential recurent mode, move window by BatchLength of the parent blob
+	int parentPos = 0;
+
+	void initializeWindow( const CPtr<CDnnBlob>& parent, int windowSize );
+};
+
+//---------------------------------------------------------------------------------------------------------------------
 
 inline void SerializeBlob( IMathEngine& mathEngine, CArchive& archive, CPtr<CDnnBlob>& blob )
 {
@@ -286,6 +343,8 @@ inline void SerializeBlobs( IMathEngine& mathEngine, CArchive& archive, CObjectA
 		SerializeBlob( mathEngine, archive, blobs[i] );
 	}
 }
+
+//---------------------------------------------------------------------------------------------------------------------
 
 enum class TDnnBlobBufferAccess {
 	Read,
@@ -332,6 +391,8 @@ private:
 	int size;
 	TBufferType* ptr;
 };
+
+//---------------------------------------------------------------------------------------------------------------------
 
 inline CDnnBlob* CDnnBlob::CreateBlob( IMathEngine& mathEngine, const CBlobDesc& pattern )
 {
@@ -456,13 +517,15 @@ inline T* CDnnBlob::GetBuffer( int pos, int size, bool exchange )
 	return static_cast<T*>( mathEngine.GetBuffer( data, pos * dataSize, size * dataSize, exchange ) );
 }
 
-inline int CDnnBlob::GetParentPos() const
+//---------------------------------------------------------------------------------------------------------------------
+
+inline int CDnnWindowBlob::GetParentPos() const
 {
 	NeoAssert(parent != 0);
 	return parentPos;
 }
 
-inline void CDnnBlob::SetParentPos(int pos)
+inline void CDnnWindowBlob::SetParentPos(int pos)
 {
 	int arrayPos = pos * (desc.BlobSize() / desc.BatchLength());
 	NeoAssert(parent != 0);
@@ -480,24 +543,23 @@ inline void CDnnBlob::SetParentPos(int pos)
 	}
 }
 
-inline void CDnnBlob::ShiftParentPos(int shift)
+inline void CDnnWindowBlob::ShiftParentPos(int shift)
 {
 	SetParentPos(parentPos + shift);
 }
 
-inline bool CDnnBlob::HasEqualDimensions(const CDnnBlob* other) const
-{
-	return desc.HasEqualDimensions(other->desc);
-}
-
-inline CDnnBlob* CDnnBlob::GetOwner()
+inline CDnnBlob* CDnnWindowBlob::GetOwner()
 {
 	CDnnBlob* result = this;
-	while( result->parent != 0 ) {
-		result = result->parent;
+	CDnnWindowBlob* window = this;
+	while( window != nullptr && window->parent != nullptr ) {
+		result = window->parent;
+		window = dynamic_cast<CDnnWindowBlob*>( result );
 	}
 	return result;
 }
+
+//---------------------------------------------------------------------------------------------------------------------
 
 template<typename TBufferType>
 inline CDnnBlobBuffer<TBufferType>::~CDnnBlobBuffer()

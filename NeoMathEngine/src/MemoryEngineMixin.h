@@ -59,6 +59,28 @@ protected:
 	std::unique_ptr<IStackAllocator, CStackAllocatorDeleter> HostStackAllocator; // stack allocator for regular memory
 
 	void CleanUpSpecial() override {}
+
+	// All below is need to avoid excess (8 bytes) field in each CMemoryHandler
+
+	// Special constructor
+	explicit CMemoryEngineMixin( int/*cannot be no call*/ ) :
+		CurrentEntity( ++MathEngineEntitiesNumerator )
+	{
+		ASSERT_EXPR( CurrentEntity < CMemoryHandle::MaxMathEngineEntities );
+		MathEngineEntitiesArray[CurrentEntity] = this;
+	}
+
+	// Generation for indices of all IMathEngine entities,
+	// Incremets evey moment new MathEngine created to generate its CurrentEntity value.
+	static size_t MathEngineEntitiesNumerator;
+	// Array for pointers to all entities of IMathEngine
+	// No cache ping-pong, because pointers are created once and never changes
+	static IMathEngine* MathEngineEntitiesArray[CMemoryHandle::MaxMathEngineEntities];
+	// Index of the current IMathEngine entity
+	const size_t CurrentEntity;
+
+	friend IMathEngine* GetMathEngineByIndex( size_t currentEntity );
+	friend size_t GetIndexOfMathEngine( const IMathEngine* mathEngine );
 };
 
 } // namespace NeoML

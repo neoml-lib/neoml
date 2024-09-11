@@ -24,6 +24,25 @@ limitations under the License.
 
 namespace NeoML {
 
+size_t CMemoryEngineMixin::MathEngineEntitiesNumerator = 0;
+IMathEngine* CMemoryEngineMixin::MathEngineEntitiesArray[CMemoryHandle::MaxMathEngineEntities]{};
+
+// Get pointer to IMathEngine by the given current entity
+IMathEngine* GetMathEngineByIndex( size_t currentEntity )
+{
+	return CMemoryEngineMixin::MathEngineEntitiesArray[currentEntity];
+}
+
+// Get current entity from the given pointer to IMathEngine
+size_t GetIndexOfMathEngine( const IMathEngine* mathEngine )
+{
+	return ( mathEngine == nullptr )
+		? CMemoryHandle::MathEngineEntityInvalid
+		: static_cast<const CMemoryEngineMixin*>( mathEngine )->CurrentEntity;
+}
+
+//---------------------------------------------------------------------------------------------------------------------
+
 void CMemoryEngineMixin::InitializeMemory( IRawMemoryManager* _rawManager, size_t _memoryLimit, int _memoryAlignment,
 		bool _reuse, bool _hostStack )
 {

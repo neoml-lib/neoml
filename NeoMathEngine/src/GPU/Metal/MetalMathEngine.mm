@@ -66,6 +66,7 @@ bool LoadMetalEngineInfo( CMathEngineInfo& info )
 const int MetalMemoryAlignment = 16;
 
 CMetalMathEngine::CMetalMathEngine( size_t memoryLimit ) :
+	CMemoryEngineMixin( 0 ),
 	queue( new CMetalCommandQueue() )
 {
 	ASSERT_EXPR( queue->Create() );

@@ -1,4 +1,4 @@
-/* Copyright © 2017-2021 ABBYY Production LLC
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -60,15 +60,13 @@ static CArchive& operator >>( CArchive& archive, py::object& obj )
 
 //------------------------------------------------------------------------------------------------------------
 
-class CTempBlob : public CDnnBlob {
+// CPyTempDnnBlob does not own the handler data
+class CPyTempDnnBlob : public CDnnBlobView {
 public:
-	CTempBlob( IMathEngine& mathEngine, const CConstFloatHandle& data, const CBlobDesc& dataDesc );
+	CPyTempDnnBlob( IMathEngine& mathEngine, const CConstFloatHandle& data, const CBlobDesc& dataDesc ) :
+		CDnnBlobView( mathEngine, dataDesc, data )
+	{}
 };
-
-CTempBlob::CTempBlob( IMathEngine& mathEngine, const CConstFloatHandle& data, const CBlobDesc& dataDesc ) :
-	CDnnBlob( mathEngine, dataDesc, data, false )
-{
-}
 
 //------------------------------------------------------------------------------------------------------------
 
@@ -89,11 +87,11 @@ protected:
 
 		CPtr<CPyMathEngineOwner> mathEngineOwner = new CPyMathEngineOwner( &MathEngine(), false );
 
-		CPtr<const CDnnBlob> dataBlob = new CTempBlob( mathEngineOwner->MathEngine(), data, inputBlobs[0]->GetDesc() );
+		CPtr<const CDnnBlob> dataBlob = new CPyTempDnnBlob( mathEngineOwner->MathEngine(), data, inputBlobs[0]->GetDesc() );
 		CPtr<const CDnnBlob> var = tape.Variable( *dataBlob.Ptr() );
 		CPyBlob dataPyBlob( *mathEngineOwner, const_cast<CDnnBlob*>(var.Ptr()) );
 
-		CPtr<CDnnBlob> labelBlob( new CTempBlob( mathEngineOwner->MathEngine(), label, inputBlobs[1]->GetDesc() ) );
+		CPtr<CDnnBlob> labelBlob( new CPyTempDnnBlob( mathEngineOwner->MathEngine(), label, inputBlobs[1]->GetDesc() ) );
 		CPyBlob labelPyBlob( *mathEngineOwner, labelBlob );
 
 		CPtr<CDnnBlob> value;
