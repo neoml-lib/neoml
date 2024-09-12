@@ -158,7 +158,7 @@ static void spaceToDepthTestInt( const CTestParams& params, int seed )
 		s2dnn.RunOnce();
 
 		CPtr<CDnnBlob> result = sink->GetBlob();
-		int* buffer = result->GetBuffer<int>( 0, dataSize, /*exchange*/false );
+		int* buffer = result->GetBuffer<int>( 0, dataSize, /*exchange*/true );
 		for( int i = 0; i < dataSize; ++i ) {
 			EXPECT_EQ( convertedData[i], buffer[i] ) << i;
 		}
@@ -175,7 +175,7 @@ static void spaceToDepthTestInt( const CTestParams& params, int seed )
 		d2snn.RunOnce();
 
 		CPtr<CDnnBlob> result = sink->GetBlob();
-		int* buffer = result->GetBuffer<int>( 0, dataSize, /*exchange*/false );
+		int* buffer = result->GetBuffer<int>( 0, dataSize, /*exchange*/true );
 		for( int i = 0; i < dataSize; ++i ) {
 			EXPECT_EQ( originalData[i], buffer[i] ) << i;
 		}

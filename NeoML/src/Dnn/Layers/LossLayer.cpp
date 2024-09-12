@@ -194,14 +194,15 @@ template<class T>
 float CLossLayer::testImpl(int batchSize, CConstFloatHandle data, int vectorSize, CTypedMemoryHandle<const T> label,
 	int labelSize, CConstFloatHandle dataDelta)
 {
-	int totalSize = batchSize * vectorSize;
+	const int totalSize = batchSize * vectorSize;
+	CFloatHandleStackVar temp( MathEngine(), ( 2 * totalSize ) + ( 3 * batchSize ) + 1 );
 
-	CFloatHandleVar lossValue(MathEngine(), batchSize);	// the function value in data point
-	CFloatHandleVar lossGradient(MathEngine(), totalSize); // the function gradient in data point
-	CFloatHandleVar dataShift(MathEngine(), totalSize); // the data + dataDelta point
-	CFloatHandleVar lossValueShift(MathEngine(), batchSize); // the function value in data + dataDelta point
-	CFloatHandleVar lossValueShiftApp(MathEngine(), batchSize); // the function approximation in data + dataDelta point
-	CFloatHandleStackVar l2( MathEngine() ); // L2-measure (lossValueShiftApp - lossValueShift)
+	CFloatHandle lossValue = temp; // the function value in data point
+	CFloatHandle lossGradient = lossValue + batchSize; // the function gradient in data point
+	CFloatHandle dataShift = lossGradient + totalSize; // the data + dataDelta point
+	CFloatHandle lossValueShift = dataShift + totalSize; // the function value in data + dataDelta point
+	CFloatHandle lossValueShiftApp = lossValueShift + batchSize; // the function approximation in data + dataDelta point
+	CFloatHandle l2 = lossValueShiftApp + batchSize; // L2-measure (lossValueShiftApp - lossValueShift)
 
 	CPtr<CDnnBlob> oldWeights = weights;
 	weights = CDnnBlob::CreateVector(MathEngine(), CT_Float, batchSize);
@@ -209,24 +210,24 @@ float CLossLayer::testImpl(int batchSize, CConstFloatHandle data, int vectorSize
 
 	// Estimate
 	BatchCalculateLossAndGradient(batchSize, data, vectorSize,
-		label, labelSize, lossValue.GetHandle(), lossGradient.GetHandle());
+		label, labelSize, lossValue, lossGradient);
 
-	MathEngine().VectorAdd(data, dataDelta, dataShift.GetHandle(), totalSize);
-	BatchCalculateLossAndGradient(batchSize, dataShift.GetHandle(), vectorSize,
-		label, labelSize, lossValueShift.GetHandle(), CFloatHandle());
+	MathEngine().VectorAdd(data, dataDelta, dataShift, totalSize);
+	BatchCalculateLossAndGradient(batchSize, dataShift, vectorSize,
+		label, labelSize, lossValueShift, CFloatHandle{});
 
 	for(int i = 0; i < batchSize; ++i) {
-		MathEngine().VectorDotProduct(lossGradient.GetHandle() + i * vectorSize,
-			dataDelta + i * vectorSize, vectorSize, lossValueShiftApp.GetHandle() + i);
+		MathEngine().VectorDotProduct(lossGradient + i * vectorSize,
+			dataDelta + i * vectorSize, vectorSize, lossValueShiftApp + i);
 	}
-	MathEngine().VectorAdd(lossValueShiftApp.GetHandle(), lossValue.GetHandle(),
-		lossValueShiftApp.GetHandle(), batchSize);
-	MathEngine().VectorSub(lossValueShiftApp.GetHandle(), lossValueShift.GetHandle(),
-		lossValueShiftApp.GetHandle(), batchSize);
-	MathEngine().VectorDotProduct(lossValueShiftApp.GetHandle(), lossValueShiftApp.GetHandle(),
-		batchSize, l2.GetHandle());
+	MathEngine().VectorAdd(lossValueShiftApp, lossValue,
+		lossValueShiftApp, batchSize);
+	MathEngine().VectorSub(lossValueShiftApp, lossValueShift,
+		lossValueShiftApp, batchSize);
+	MathEngine().VectorDotProduct(lossValueShiftApp, lossValueShiftApp,
+		batchSize, l2);
 
-	float res = l2.GetHandle().GetValue() / batchSize;
+	float res = l2.GetValue() / batchSize;
 
 	weights = oldWeights; // restore the old weight values
 
@@ -248,67 +249,73 @@ float CLossLayer::Test(int batchSize, CConstFloatHandle data, int vectorSize, CC
 float CLossLayer::TestRandom(CRandom& random, int batchSize, float dataLabelMin, float dataLabelMax, float deltaAbsMax,
 	int vectorSize)
 {
-	int totalSize = batchSize * vectorSize;
+	NeoAssert( batchSize > 0 && vectorSize > 0 );
+	NeoAssert( dataLabelMin < dataLabelMax && deltaAbsMax > 0 );
 
-	CArray<float> temp;
+	const int totalSize = batchSize * vectorSize;
+	CFloatHandleStackVar temp( MathEngine(), totalSize * 3 );
 
-	CFloatHandleVar data( MathEngine(), totalSize );
-	temp.SetSize(totalSize);
-	for(int i = 0; i < totalSize; ++i) {
-		temp[i] = (float)random.Uniform(dataLabelMin, dataLabelMax);
+	CFloatHandle data = temp;
+	CFloatHandle label = data + totalSize;
+	CFloatHandle delta = label + totalSize;
+	{
+		CArray<float> buf;
+		buf.SetSize( totalSize );
+
+		for( int i = 0; i < totalSize; ++i ) {
+			buf[i] = static_cast<float>( random.Uniform(dataLabelMin, dataLabelMax) );
+		}
+		MathEngine().DataExchangeTyped(data, buf.GetPtr(), totalSize);
+
+		for( int i = 0; i < totalSize; ++i ) {
+			buf[i] = static_cast<float>( random.Uniform(dataLabelMin, dataLabelMax) );
+		}
+		MathEngine().DataExchangeTyped(label, buf.GetPtr(), totalSize);
+
+		for( int i = 0; i < totalSize; ++i ) {
+			buf[i] = static_cast<float>( random.Uniform(-deltaAbsMax, deltaAbsMax) );
+		}
+		MathEngine().DataExchangeTyped(delta, buf.GetPtr(), totalSize);
 	}
-	MathEngine().DataExchangeTyped(data.GetHandle(), temp.GetPtr(), totalSize);
-
-	CFloatHandleVar label( MathEngine(), totalSize );
-	temp.SetSize(totalSize);
-	for(int i = 0; i < totalSize; ++i) {
-		temp[i] = (float)random.Uniform(dataLabelMin, dataLabelMax);
-	}
-	MathEngine().DataExchangeTyped(label.GetHandle(), temp.GetPtr(), totalSize);
-
-	NeoAssert(deltaAbsMax > 0);
-	CFloatHandleVar delta( MathEngine(), totalSize );
-	temp.SetSize(totalSize);
-	for(int i = 0; i < totalSize; ++i) {
-		temp[i] = (float)random.Uniform(-deltaAbsMax, deltaAbsMax);
-	}
-	MathEngine().DataExchangeTyped(delta.GetHandle(), temp.GetPtr(), totalSize);
-
-	return Test(batchSize, data.GetHandle(), vectorSize, label.GetHandle(), vectorSize, delta.GetHandle());
+	return Test(batchSize, data, vectorSize, label, vectorSize, delta);
 }
 
-float CLossLayer::TestRandom(CRandom& random, int batchSize, float dataMin, float dataMax, int labelMax, float deltaAbsMax,
-	int vectorSize)
+float CLossLayer::TestRandom( CRandom& random, int batchSize, float dataMin, float dataMax, int labelMax, float deltaAbsMax,
+	int vectorSize )
 {
-	int totalSize = batchSize * vectorSize;
+	NeoAssert( batchSize > 0 && vectorSize > 0 );
+	NeoAssert( dataMin < dataMax && labelMax > 0 && deltaAbsMax > 0 );
 
-	CArray<float> temp;
+	const int totalSize = batchSize * vectorSize;
+	CFloatHandleStackVar temp( MathEngine(), totalSize * 2 );
 
-	CFloatHandleVar data( MathEngine(), totalSize );
-	temp.SetSize(totalSize);
-	for(int i = 0; i < totalSize; ++i) {
-		temp[i] = (float)random.Uniform(dataMin, dataMax);
+	CFloatHandle data = temp;
+	CFloatHandle delta = data + totalSize;
+	{
+		CArray<float> buf;
+		buf.SetSize( totalSize );
+
+		for( int i = 0; i < totalSize; ++i ) {
+			buf[i] = static_cast<float>( random.Uniform(dataMin, dataMax) );
+		}
+		MathEngine().DataExchangeTyped(data, buf.GetPtr(), totalSize);
+
+		for( int i = 0; i < totalSize; ++i ) {
+			buf[i] = static_cast<float>( random.Uniform(-deltaAbsMax, deltaAbsMax) );
+		}
+		MathEngine().DataExchangeTyped(delta, buf.GetPtr(), totalSize);
 	}
-	MathEngine().DataExchangeTyped(data.GetHandle(), temp.GetPtr(), totalSize);
 
-	NeoAssert(labelMax > 0);
-	CPtr<CDnnBlob> label = CDnnBlob::CreateVector(MathEngine(), CT_Int, batchSize);
-	CArray<int> tempInt;
-	tempInt.SetSize(batchSize);
-	for(int i = 0; i < batchSize; ++i) {
-		tempInt[i] = random.UniformInt(0, labelMax - 1);
+	CIntHandleStackVar label(MathEngine(), batchSize);
+	{
+		CArray<int> bufInt;
+		bufInt.SetSize( batchSize );
+		for( int i = 0; i < batchSize; ++i ) {
+			bufInt[i] = random.UniformInt(0, labelMax - 1);
+		}
+		MathEngine().DataExchangeTyped<int>(label, bufInt.GetPtr(), batchSize);
 	}
-	MathEngine().DataExchangeTyped(label->GetData<int>(), tempInt.GetPtr(), batchSize);
-
-	NeoAssert(deltaAbsMax > 0);
-	CFloatHandleVar delta( MathEngine(), totalSize );
-	temp.SetSize(totalSize);
-	for(int i = 0; i < totalSize; ++i) {
-		temp[i] = (float)random.Uniform(-deltaAbsMax, deltaAbsMax);
-	}
-	MathEngine().DataExchangeTyped(delta.GetHandle(), temp.GetPtr(), totalSize);
-
-	return Test(batchSize, data.GetHandle(), vectorSize, label->GetData<int>(), 1, delta.GetHandle());
+	return Test(batchSize, data, vectorSize, label, 1, delta);
 }
 
 } // namespace NeoML
