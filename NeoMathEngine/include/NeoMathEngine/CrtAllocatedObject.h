@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -30,6 +30,19 @@ public:
 	void operator delete(void* ptr);
 	void* operator new[](size_t size);
 	void operator delete[](void* ptr);
+};
+
+// Base class for all classes in MathEngine
+// All derived classes can be stored in stack data only
+// Cannot be used new and delete
+class NEOMATHENGINE_API CCrtStaticOnlyAllocatedObject {
+public:
+	// Prevent heap allocation of scalar objects
+	void* operator new( size_t size ) = delete;
+	void operator delete( void* ptr ) = delete;
+	// Prevent heap allocation of array of objects
+	void* operator new[]( size_t size ) = delete;
+	void operator delete[]( void* ptr ) = delete;
 };
 
 } // namespace NeoML

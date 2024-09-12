@@ -20,9 +20,9 @@ limitations under the License.
 namespace NeoML {
 
 // The generator used for dropout
-class CCpuRandom final : public CCrtAllocatedObject {
+class CCpuRandom final : public CCrtStaticOnlyAllocatedObject {
 public:
-	struct CCounter final : public CCrtAllocatedObject {
+	struct CCounter final : public CCrtStaticOnlyAllocatedObject {
 		unsigned int Data[4]{};
 	};
 
@@ -35,24 +35,17 @@ public:
 	void Next( CCounter& currentCounter );
 
 private:
-	struct CKey final : public CCrtAllocatedObject {
-		unsigned int Data[2]{};
-	};
-
+	const unsigned int seed;
 	CCounter counter{};
-	CKey key{};
 
-	static void raiseKey( CKey& key );
-	static void computeSingleRound( CCounter& counter, const CKey& key );
+	static void computeSingleRound( CCounter& currentCounter, const CCounter& counter, unsigned int* key );
 };
 
 //---------------------------------------------------------------------------------------------------------------------
 
-inline CCpuRandom::CCpuRandom( int seed )
+inline CCpuRandom::CCpuRandom( int seed ) : seed( static_cast<unsigned int>( seed ) )
 {
-	key.Data[0] = seed;
 	// Several random constants
-	key.Data[1] = seed ^ 0xBADF00D;
 	counter.Data[2] = seed ^ 0xBADFACE;
 	counter.Data[3] = seed ^ 0xBADBEEF;
 }
@@ -75,29 +68,19 @@ inline void CCpuRandom::Skip( uint64_t count )
 
 inline void CCpuRandom::Next( CCounter& currentCounter )
 {
-	currentCounter = counter;
-	CKey currentKey = key;
+	unsigned int key[2]{ seed, seed ^ 0xBADF00D }; // random constant
 
-	computeSingleRound( currentCounter, currentKey );
-	raiseKey( currentKey );
-	computeSingleRound( currentCounter, currentKey );
-	raiseKey( currentKey );
-	computeSingleRound( currentCounter, currentKey );
-	raiseKey( currentKey );
-	computeSingleRound( currentCounter, currentKey );
-	raiseKey( currentKey );
-	computeSingleRound( currentCounter, currentKey );
-	raiseKey( currentKey );
-	computeSingleRound( currentCounter, currentKey );
-	raiseKey( currentKey );
-	computeSingleRound( currentCounter, currentKey );
-	raiseKey( currentKey );
-	computeSingleRound( currentCounter, currentKey );
-	raiseKey( currentKey );
-	computeSingleRound( currentCounter, currentKey );
-	raiseKey( currentKey );
-	computeSingleRound( currentCounter, currentKey );
-	raiseKey( currentKey );
+	// loop is unrolled
+	computeSingleRound( currentCounter, counter, key ); // 0
+	computeSingleRound( currentCounter, currentCounter, key ); // 1
+	computeSingleRound( currentCounter, currentCounter, key ); // 2
+	computeSingleRound( currentCounter, currentCounter, key ); // 3
+	computeSingleRound( currentCounter, currentCounter, key ); // 4
+	computeSingleRound( currentCounter, currentCounter, key ); // 5
+	computeSingleRound( currentCounter, currentCounter, key ); // 6
+	computeSingleRound( currentCounter, currentCounter, key ); // 7
+	computeSingleRound( currentCounter, currentCounter, key ); // 8
+	computeSingleRound( currentCounter, currentCounter, key ); // 9
 
 	// skip one
 	if( ++counter.Data[0] == 0 && ++counter.Data[1] == 0 && ++counter.Data[2] == 0 ) {
@@ -105,13 +88,7 @@ inline void CCpuRandom::Next( CCounter& currentCounter )
 	}
 }
 
-inline void CCpuRandom::raiseKey( CKey& key )
-{
-	key.Data[0] += 0x9E3779B9; // kPhiloxW32A
-	key.Data[1] += 0xBB67AE85; // kPhiloxW32B
-}
-
-inline void CCpuRandom::computeSingleRound( CCounter& counter, const CKey& key )
+inline void CCpuRandom::computeSingleRound( CCounter& currentCounter, const CCounter& counter, unsigned int* key )
 {
 	constexpr uint64_t kPhiloxM4x32A = 0xD2511F53;
 	const uint64_t firstProduct = kPhiloxM4x32A * counter.Data[0];
@@ -123,10 +100,14 @@ inline void CCpuRandom::computeSingleRound( CCounter& counter, const CKey& key )
 	const unsigned int secondLow = static_cast<unsigned int>( secondProduct );
 	const unsigned int secondHigh = static_cast<unsigned int>( secondProduct >> 32 );
 
-	counter.Data[0] = secondHigh ^ counter.Data[1] ^ key.Data[0];
-	counter.Data[1] = secondLow;
-	counter.Data[2] = firstHigh ^ counter.Data[3] ^ key.Data[1];
-	counter.Data[3] = firstLow;
+	currentCounter.Data[0] = secondHigh ^ counter.Data[1] ^ key[0];
+	currentCounter.Data[1] = secondLow;
+	currentCounter.Data[2] = firstHigh ^ counter.Data[3] ^ key[1];
+	currentCounter.Data[3] = firstLow;
+
+	// raise key
+	key[0] += 0x9E3779B9; // kPhiloxW32A;
+	key[1] += 0xBB67AE85; // kPhiloxW32B;
 }
 
 } // namespace NeoML
