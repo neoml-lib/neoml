@@ -1,4 +1,4 @@
-/* Copyright © 2017-2023 ABBYY
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -39,7 +39,7 @@ CMaxPoolingDesc* CMetalMathEngine::InitMaxPooling( const CBlobDesc& source,
 }
 
 void CMetalMathEngine::BlobMaxPooling( const CMaxPoolingDesc& poolingDesc,
-	const CFConstloatHandle& sourceData, const CIntHandle* maxIndicesData, const CFloatHandle& resultData )
+	const CConstFloatHandle& sourceData, const CIntHandle* maxIndicesData, const CFloatHandle& resultData )
 {
 	ASSERT_EXPR( sourceData.GetMathEngine() == this );
 	ASSERT_EXPR( maxIndicesData == 0 );
@@ -219,7 +219,7 @@ C3dMaxPoolingDesc* CMetalMathEngine::Init3dMaxPooling( const CBlobDesc& source,
 }
 
 void CMetalMathEngine::Blob3dMaxPooling( const C3dMaxPoolingDesc& poolingDesc, const CConstFloatHandle& sourceData,
-	const CConstIntHandle* maxIndicesData, const CFloatHandle& resultData )
+	const CIntHandle* maxIndicesData, const CFloatHandle& resultData )
 {
 	ASSERT_EXPR( sourceData.GetMathEngine() == this );
 	ASSERT_EXPR( maxIndicesData == 0 || maxIndicesData->GetMathEngine() == this );

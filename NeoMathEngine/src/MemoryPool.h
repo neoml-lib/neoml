@@ -19,6 +19,7 @@ limitations under the License.
 #include <RawMemoryManager.h>
 #include <unordered_map>
 #include <thread>
+#include <vector>
 
 namespace NeoML {
 

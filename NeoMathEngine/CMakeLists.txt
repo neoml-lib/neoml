@@ -32,7 +32,11 @@ option(NeoMathEngine_BUILD_SHARED "Build NeoMathEngine as shared library." ON)
 option(NeoMathEngine_ENABLE_VULKAN "Enable to build vulkan backend" ON)
 
 # Enable to build metal backend
+if(USE_FINE_OBJECTS)
 option(NeoMathEngine_ENABLE_METAL "Enable to build metal backend" OFF)
+else()
+option(NeoMathEngine_ENABLE_METAL "Enable to build metal backend" ON)
+endif()
 
 # Install NeoMathEngine
 if(DEFINED NeoML_INSTALL)
