@@ -225,6 +225,25 @@ public:
 	IPerformanceCounters::CCounter::TCounterType GetRunOnceTime() const { return runOnceTime / 1000000; }
 
 protected:
+	// Layer input descriptions
+	CArray<CBlobDesc> inputDescs;
+	// Layer output descriptions
+	CArray<CBlobDesc> outputDescs;
+
+	// Input and output blobs
+	CObjectArray<CDnnBlob> inputBlobs;
+	CObjectArray<CDnnBlob> outputBlobs;
+
+	// Input diff - the blobs with simulated errors for input layers training
+	CObjectArray<CDnnBlob> inputDiffBlobs;
+	// Output diff - the blobs with simulated errors for learning
+	CObjectArray<CDnnBlob> outputDiffBlobs;
+
+	// The blobs for trainable parameters
+	CObjectArray<CDnnBlob> paramBlobs;
+	// The blobs where the parameter diffs are stored
+	CObjectArray<CDnnBlob> paramDiffBlobs;
+
 	// A virtual method that creates output blobs using the input blobs
 	virtual void Reshape() = 0;
 	// A virtual method that implements one step of a forward pass
@@ -256,25 +275,6 @@ protected:
 	void CheckOutputs() const;
 	// Registers the blob with the data needed for learning or backpropagation
 	void RegisterRuntimeBlob(CPtr<CDnnBlob>& blob);
-
-	// Layer input descriptions
-	CArray<CBlobDesc> inputDescs;
-	// Layer output descriptions
-	CArray<CBlobDesc> outputDescs;
-
-	// Input and output blobs
-	CObjectArray<CDnnBlob> inputBlobs;
-	CObjectArray<CDnnBlob> outputBlobs;
-
-	// Input diff - the blobs with simulated errors for input layers training
-	CObjectArray<CDnnBlob> inputDiffBlobs;
-	// Output diff - the blobs with simulated errors for learning
-	CObjectArray<CDnnBlob> outputDiffBlobs;
-
-	// The blobs for trainable parameters
-	CObjectArray<CDnnBlob> paramBlobs;
-	// The blobs where the parameter diffs are stored
-	CObjectArray<CDnnBlob> paramDiffBlobs;
 
 	// Initializes the parameters blob using the specified initializing algorithm
 	// If inputSize == 0, the blob will have the (inputBlobs[input] / 2) size
@@ -323,6 +323,20 @@ private:
 		CString Name; // the name of the layer that is connected to the input
 		int OutputNumber = NotFound; // the number of that layer's output that is connected to the input
 	};
+	// Indicates if backpropagation should be performed for the layer
+	enum TBackwardStatus {
+		BS_Unknown,
+		BS_NeedsBackward,
+		BS_DoesntNeedBackward
+	};
+	// The temporary blob cache for sequence processing in a recurrent layer
+	enum TBlobCacheType {
+		BCT_Input,
+		BCT_Output,
+		BCT_Runtime,
+
+		BCT_Count
+	};
 
 	IMathEngine& mathEngine; 	// the layer's MathEngine
 	CString name;				// the layer name
@@ -339,12 +353,6 @@ private:
 	float baseL2RegularizationMult;
 	float baseL1RegularizationMult;
 
-	// Indicates if backpropagation should be performed for the layer
-	enum TBackwardStatus {
-		BS_Unknown,
-		BS_NeedsBackward,
-		BS_DoesntNeedBackward
-	};
 	TBackwardStatus isBackwardNeeded;
 	// Forces backpropagation
 	bool isBackwardForced;
@@ -375,14 +383,6 @@ private:
 	CObjectArray<CDnnBlob> runtimeBlobs;
 	CArray<CPtr<CDnnBlob>*> runtimeBlobPtrs;
 
-	// The temporary blob cache for sequence processing in a recurrent layer
-	enum TBlobCacheType {
-		BCT_Input,
-		BCT_Output,
-		BCT_Runtime,
-
-		BCT_Count
-	};
 	CObjectArray<CDnnBlob> blobCache[BCT_Count];
 
 	// The number of graphs with which the layer is connected
