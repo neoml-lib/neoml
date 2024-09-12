@@ -21,6 +21,7 @@ target_sources(${PROJECT_NAME} INTERFACE
     ${CMAKE_CURRENT_SOURCE_DIR}/DnnOnnxLayerTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/DnnOptimizationTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/DnnParameterLayerTest.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/DnnPrecisionRecallLayerTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/DnnReferenceTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/DnnRowwiseTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/DnnSerializationTest.cpp
