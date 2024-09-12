@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -19,65 +19,35 @@ limitations under the License.
 
 namespace NeoML {
 
-// An unsigned int array of constant size that can be copied
-template<int size>
-class CIntArray : public CCrtAllocatedObject {
-public:
-	static const int Size = size;
-
-	CIntArray();
-
-	const unsigned int& operator[] ( int index ) const { return data[index]; }
-	unsigned int& operator[] ( int index ) { return data[index]; }
-
-	const unsigned int* GetPtr() const { return data; }
-
-private:
-	unsigned int data[size];
-};
-
-template<int size>
-inline CIntArray<size>::CIntArray()
-{
-	for( int i = 0; i < size; ++i ) {
-		data[i] = 0;
-	}
-}
-
-// ====================================================================================================================
 // The generator used for dropout
-class CCpuRandom : public CCrtAllocatedObject {
+class CCpuRandom final : public CCrtStaticOnlyAllocatedObject {
 public:
+	struct CCounter final : public CCrtStaticOnlyAllocatedObject {
+		unsigned int Data[4]{};
+	};
+
 	// Initializes the array of four unsigned int
 	explicit CCpuRandom( int seed );
 
 	// Stop after generating 'count' values
 	void Skip( uint64_t count );
-
 	// Get the next random 128 bits
-	CIntArray<4> Next();
+	void Next( CCounter& currentCounter );
 
 private:
-	static const unsigned int kPhiloxW32A = 0x9E3779B9;
-	static const unsigned int kPhiloxW32B = 0xBB67AE85;
-	static const unsigned int kPhiloxM4x32A = 0xD2511F53;
-	static const unsigned int kPhiloxM4x32B = 0xCD9E8D57;
+	const unsigned int seed;
+	CCounter counter{};
 
-	CIntArray<4> counter;
-	CIntArray<2> key;
-
-	static void raiseKey( CIntArray<2>& key );
-	static CIntArray<4> computeSingleRound( const CIntArray<4>& counter, const CIntArray<2>& key );
-	void skipOne();
+	static void computeSingleRound( CCounter& currentCounter, const CCounter& counter, unsigned int* key );
 };
 
-inline CCpuRandom::CCpuRandom( int seed )
+//---------------------------------------------------------------------------------------------------------------------
+
+inline CCpuRandom::CCpuRandom( int seed ) : seed( static_cast<unsigned int>( seed ) )
 {
-	key[0] = seed;
 	// Several random constants
-	key[1] = seed ^ 0xBADF00D;
-	counter[2] = seed ^ 0xBADFACE;
-	counter[3] = seed ^ 0xBADBEEF;
+	counter.Data[2] = seed ^ 0xBADFACE;
+	counter.Data[3] = seed ^ 0xBADBEEF;
 }
 
 inline void CCpuRandom::Skip( uint64_t count )
@@ -85,91 +55,59 @@ inline void CCpuRandom::Skip( uint64_t count )
 	const unsigned int countLow = static_cast<unsigned int>( count );
 	unsigned int countHigh  = static_cast<unsigned int>( count >> 32 );
 
-	counter[0] += countLow;
-	if( counter[0] < countLow ) {
+	counter.Data[0] += countLow;
+	if( counter.Data[0] < countLow ) {
 		countHigh++;
 	}
 
-	counter[1] += countHigh;
-	if( counter[1] < countHigh ) {
-		if( ++counter[2] == 0 ) {
-			++counter[3];
-		}
+	counter.Data[1] += countHigh;
+	if( counter.Data[1] < countHigh && ++counter.Data[2] == 0 ) {
+		++counter.Data[3];
 	}
 }
 
-inline CIntArray<4> CCpuRandom::Next()
+inline void CCpuRandom::Next( CCounter& currentCounter )
 {
-	CIntArray<4> currentCounter = counter;
-	CIntArray<2> currentKey = key;
+	unsigned int key[2]{ seed, seed ^ 0xBADF00D }; // random constant
 
-	currentCounter = computeSingleRound( currentCounter, currentKey );
-	raiseKey( currentKey );
-	currentCounter = computeSingleRound( currentCounter, currentKey );
-	raiseKey( currentKey );
-	currentCounter = computeSingleRound( currentCounter, currentKey );
-	raiseKey( currentKey );
-	currentCounter = computeSingleRound( currentCounter, currentKey );
-	raiseKey( currentKey );
-	currentCounter = computeSingleRound( currentCounter, currentKey );
-	raiseKey( currentKey );
-	currentCounter = computeSingleRound( currentCounter, currentKey );
-	raiseKey( currentKey );
-	currentCounter = computeSingleRound( currentCounter, currentKey );
-	raiseKey( currentKey );
-	currentCounter = computeSingleRound( currentCounter, currentKey );
-	raiseKey( currentKey );
-	currentCounter = computeSingleRound( currentCounter, currentKey );
-	raiseKey( currentKey );
-	currentCounter = computeSingleRound( currentCounter, currentKey );
-	raiseKey( currentKey );
+	// loop is unrolled
+	computeSingleRound( currentCounter, counter, key ); // 0
+	computeSingleRound( currentCounter, currentCounter, key ); // 1
+	computeSingleRound( currentCounter, currentCounter, key ); // 2
+	computeSingleRound( currentCounter, currentCounter, key ); // 3
+	computeSingleRound( currentCounter, currentCounter, key ); // 4
+	computeSingleRound( currentCounter, currentCounter, key ); // 5
+	computeSingleRound( currentCounter, currentCounter, key ); // 6
+	computeSingleRound( currentCounter, currentCounter, key ); // 7
+	computeSingleRound( currentCounter, currentCounter, key ); // 8
+	computeSingleRound( currentCounter, currentCounter, key ); // 9
 
-	skipOne();
-
-	return currentCounter;
-}
-
-inline void CCpuRandom::raiseKey( CIntArray<2>& key )
-{
-	key[0] += kPhiloxW32A;
-	key[1] += kPhiloxW32B;
-}
-
-static inline void multiplyHighLow( unsigned int x, unsigned int y, unsigned int* resultLow,
-	unsigned int* resultHigh )
-{
-	const uint64_t product = static_cast<uint64_t>( x ) * y;
-	*resultLow = static_cast<unsigned int>( product );
-	*resultHigh = static_cast<unsigned int>( product >> 32 );
-}
-
-inline CIntArray<4> CCpuRandom::computeSingleRound( const CIntArray<4>& counter, const CIntArray<2>& key )
-{
-	unsigned int firstLow;
-	unsigned int firstHigh;
-	multiplyHighLow( kPhiloxM4x32A, counter[0], &firstLow, &firstHigh );
-
-	unsigned int secondLow;
-	unsigned int secondHigh;
-	multiplyHighLow( kPhiloxM4x32B, counter[2], &secondLow, &secondHigh );
-
-	CIntArray<4> result;
-	result[0] = secondHigh ^ counter[1] ^ key[0];
-	result[1] = secondLow;
-	result[2] = firstHigh ^ counter[3] ^ key[1];
-	result[3] = firstLow;
-	return result;
-}
-
-inline void CCpuRandom::skipOne()
-{
-	if( ++counter[0] == 0 ) {
-		if( ++counter[1] == 0 ) {
-			if( ++counter[2] == 0 ) {
-				++counter[3];
-			}
-		}
+	// skip one
+	if( ++counter.Data[0] == 0 && ++counter.Data[1] == 0 && ++counter.Data[2] == 0 ) {
+		++counter.Data[3];
 	}
+}
+
+inline void CCpuRandom::computeSingleRound( CCounter& currentCounter, const CCounter& counter, unsigned int* key )
+{
+	constexpr uint64_t kPhiloxM4x32A = 0xD2511F53;
+	const uint64_t firstProduct = kPhiloxM4x32A * counter.Data[0];
+	const unsigned int firstLow = static_cast<unsigned int>( firstProduct );
+	const unsigned int firstHigh = static_cast<unsigned int>( firstProduct >> 32 );
+
+	constexpr uint64_t kPhiloxM4x32B = 0xCD9E8D57;
+	const uint64_t secondProduct = kPhiloxM4x32B * counter.Data[2];
+	const unsigned int secondLow = static_cast<unsigned int>( secondProduct );
+	const unsigned int secondHigh = static_cast<unsigned int>( secondProduct >> 32 );
+
+	currentCounter.Data[0] = secondHigh ^ counter.Data[1] ^ key[0];
+	currentCounter.Data[1] = secondLow;
+	currentCounter.Data[2] = firstHigh ^ counter.Data[3] ^ key[1];
+	currentCounter.Data[3] = firstLow;
+
+	// raise key
+	key[0] += 0x9E3779B9; // kPhiloxW32A;
+	key[1] += 0xBB67AE85; // kPhiloxW32B;
 }
 
 } // namespace NeoML
