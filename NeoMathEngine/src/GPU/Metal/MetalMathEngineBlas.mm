@@ -26,7 +26,7 @@ limitations under the License.
 @import MetalKit;
 
 namespace NeoML {
-    
+
 // The number of combined values for the vector kernels
 static const int VectorCombineCount = 8;
 
@@ -193,12 +193,14 @@ void CMetalMathEngine::VectorMultichannelLookupAndCopy( int batchSize, int chann
 }
 
 void CMetalMathEngine::VectorMultichannelLookupAndAddToTable( int batchSize, int channelCount, const CConstFloatHandle& inputHandle,
-	const CFloatHandle* lookupHandles, const CLookupDimension* lookupDimensions, int lookupCount, const CConstFloatHandle& multHandle,
+	const CFloatHandle* lookupHandles, const CLookupDimension* lookupDimensions, int lookupCount, CFloatParam mult,
 	const CConstFloatHandle& matrixHandle, int outputChannelsCount )
 {
 	ASSERT_EXPR( inputHandle.GetMathEngine() == this );
-	ASSERT_EXPR( multHandle.GetMathEngine() == this );
 	ASSERT_EXPR( matrixHandle.GetMathEngine() == this );
+
+	CFloatHandleStackVar multHandle( *this );
+	multHandle.SetValue( mult );
 
 	int outputChannel = 0;
 	for( int i = 0; i < lookupCount; ++i ) {
@@ -222,12 +224,14 @@ void CMetalMathEngine::VectorMultichannelLookupAndAddToTable( int batchSize, int
 }
 
 void CMetalMathEngine::VectorMultichannelLookupAndAddToTable( int batchSize, int channelCount, const CConstIntHandle& inputHandle,
-	const CFloatHandle* lookupHandles, const CLookupDimension* lookupDimensions, int lookupCount, const CConstFloatHandle& multHandle,
+	const CFloatHandle* lookupHandles, const CLookupDimension* lookupDimensions, int lookupCount, CFloatParam mult,
 	const CConstFloatHandle& matrixHandle, int outputChannelsCount )
 {
 	ASSERT_EXPR( inputHandle.GetMathEngine() == this );
-	ASSERT_EXPR( multHandle.GetMathEngine() == this );
 	ASSERT_EXPR( matrixHandle.GetMathEngine() == this );
+
+	CFloatHandleStackVar multHandle( *this );
+	multHandle.SetValue( mult );
 
 	int outputChannel = 0;
 	for( int i = 0; i < lookupCount; ++i ) {
@@ -366,12 +370,14 @@ void CMetalMathEngine::RowMultiplyMatrixByMatrix( const CConstFloatHandle& first
 }
 
 void CMetalMathEngine::VectorMultiplyAndAdd( const CConstFloatHandle& firstHandle, const CConstFloatHandle& secondHandle,
-	const CFloatHandle& resultHandle, int vectorSize, const CConstFloatHandle& multHandle )
+	const CFloatHandle& resultHandle, int vectorSize, CFloatParam mult )
 {
 	ASSERT_EXPR( firstHandle.GetMathEngine() == this );
 	ASSERT_EXPR( secondHandle.GetMathEngine() == this );
 	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
-	ASSERT_EXPR( multHandle.GetMathEngine() == this ); 
+
+	CFloatHandleStackVar multHandle( *this );
+	multHandle.SetValue( mult );
 
 	C1DKernel kernel( *queue, "vectorKernelVectorMultiplyAndAdd", 1, vectorSize );
 	kernel.SetParam( firstHandle, 0 );
@@ -383,12 +389,14 @@ void CMetalMathEngine::VectorMultiplyAndAdd( const CConstFloatHandle& firstHandl
 }
 
 void CMetalMathEngine::VectorMultiplyAndSub( const CConstFloatHandle& firstHandle, const CConstFloatHandle& secondHandle,
-	const CFloatHandle& resultHandle, int vectorSize, const CConstFloatHandle& multHandle )
+	const CFloatHandle& resultHandle, int vectorSize, CFloatParam mult )
 {
 	ASSERT_EXPR( firstHandle.GetMathEngine() == this );
 	ASSERT_EXPR( secondHandle.GetMathEngine() == this );
 	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
-	ASSERT_EXPR( multHandle.GetMathEngine() == this ); 
+
+	CFloatHandleStackVar multHandle( *this );
+	multHandle.SetValue( mult );
 
 	C1DKernel kernel( *queue, "vectorKernelVectorMultiplyAndSub", 1, vectorSize );
 	kernel.SetParam( firstHandle, 0 );
