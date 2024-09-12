@@ -50,7 +50,7 @@ void CCpuMathEngine::Dropout(const CDropoutDesc& dropoutDesc, const CFloatHandle
 	const int maskSize = batchWidth * objectSize;
 
 	CCpuRandom random(desc.Seed);
-	CIntArray<CSeedDropoutDesc::MaskAlign> generated;
+	CCpuRandom::CCounter generated{};
 
 	const int inputObjectSize = input.ObjectSize();
 	const unsigned int threshold = desc.Threshold;
@@ -75,9 +75,9 @@ void CCpuMathEngine::Dropout(const CDropoutDesc& dropoutDesc, const CFloatHandle
 			const int numOfGenerations = (currSize + (maskAlign - 1)) / maskAlign;
 			int idx = 0;
 			for (int g = 0; g < numOfGenerations; ++g) {
-				generated = random.Next();
+				random.Next( generated );
 				for (int k = 0; k < maskAlign; ++k) {
-					mask[idx++] = (generated[k] <= threshold) ? value : 0.f;
+					mask[idx++] = (generated.Data[k] <= threshold) ? value : 0.f;
 				}
 			}
 

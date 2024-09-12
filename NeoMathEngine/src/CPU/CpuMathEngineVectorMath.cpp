@@ -273,12 +273,13 @@ void CCpuMathEngine::VectorFillBernoulli( const CFloatHandle& result, float p, i
 	const unsigned int threshold = (unsigned int)( (double)p * UINT_MAX );
 
 	CCpuRandom random( seed );
+	CCpuRandom::CCounter generated{};
 
 	int index = 0;
 	for( int i = 0; i < ( vectorSize + 3 ) / 4; ++i ) {
-		CIntArray<4> generated = random.Next();
+		random.Next( generated );
 		for( int j = 0; j < 4 && index < vectorSize; ++j ) {
-			resultPtr[index++] = ( generated[j] <= threshold ) ? value : 0.f;
+			resultPtr[index++] = ( generated.Data[j] <= threshold ) ? value : 0.f;
 		}
 	}
 }
