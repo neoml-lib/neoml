@@ -401,25 +401,13 @@ REGISTER_NEOML_LAYER( CWhereLayer, "NeoMLDnnWhereLayer" )
 
 //---------------------------------------------------------------------------------------------------------
 
-CDnn::CDnn( CRandom& _random, IMathEngine& _mathEngine, const CCompositeLayer* owner ) :
-	owner( owner ),
-	log( 0 ),
-	logFrequency( 100 ),
+CDnn::CDnn( CRandom& _random, IMathEngine& _mathEngine, const CCompositeLayer* _owner ) :
 	random( _random ),
 	mathEngine( _mathEngine ),
-	runNumber( -1 ),
-	isRebuildNeeded( false ),
-	isBackwardPerformed( false ),
-	isLearningEnabled( true ),
-	isRecurrentMode( false ),
-	maxSequenceLength( 1 ),
-	currentSequencePos( 0 ),
-	isReverseSequense( false ),
-	autoRestartMode( true ),
-	isReuseMemoryMode( false )
+	solver( FINE_DEBUG_NEW CDnnSimpleGradientSolver( mathEngine ) ),
+	initializer( FINE_DEBUG_NEW CDnnXavierInitializer( random ) ),
+	owner( _owner )
 {
-	solver = FINE_DEBUG_NEW CDnnSimpleGradientSolver( mathEngine );
-	initializer = FINE_DEBUG_NEW CDnnXavierInitializer( random );
 }
 
 CDnn::~CDnn()

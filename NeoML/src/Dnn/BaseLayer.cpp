@@ -30,22 +30,7 @@ static const size_t MaxMemoryInPools = 192 * 1024 * 1024;
 CBaseLayer::CBaseLayer( IMathEngine& _mathEngine, const char* _name, bool _isLearnable ) :
 	mathEngine( _mathEngine ),
 	name( _name ),
-	dnn( 0 ),
-	isLearnable( _isLearnable ),
-	isLearningEnabled( true ),
-	baseLearningRate( 1 ),
-	baseL2RegularizationMult( 1 ),
-	baseL1RegularizationMult( 1 ),
-	isBackwardNeeded( BS_Unknown ),
-	isBackwardForced( false ),
-	forcedReshape( true ),
-	isReshapeNeeded( true ),
-	lastRunNumber( 0 ),
-	graphCount( 0 ),
-	useTimer( false ),
-	runOnceCount( 0 ),
-	runOnceTime( 0 ),
-	isInPlace( false )
+	isLearnable( _isLearnable )
 {
 }
 
