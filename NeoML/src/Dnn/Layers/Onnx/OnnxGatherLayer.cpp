@@ -1,4 +1,4 @@
-/* Copyright © 2017-2023 ABBYY Production LLC
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -38,8 +38,7 @@ static void shiftIndices( int gatherDimSize, const CDnnBlob& indices, CDnnBlob& 
 	mathEngine.VectorFill( result.GetData<int>(), 0, result.GetDataSize() );
 	// Add imageSize value to negative indices
 	mathEngine.VectorEltwiseLess( indices.GetData<int>(), result.GetData<int>(), result.GetData<int>(), result.GetDataSize() );
-	CIntHandleStackVar imageSizeVar( mathEngine );
-	imageSizeVar.SetValue( gatherDimSize );
+	const int imageSizeVar = ( gatherDimSize );
 	mathEngine.VectorMultiply( result.GetData<int>(), result.GetData<int>(), result.GetDataSize(), imageSizeVar );
 	mathEngine.VectorAdd( result.GetData<int>(), indices.GetData<int>(), result.GetData<int>(), result.GetDataSize() );
 }

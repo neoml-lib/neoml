@@ -1,4 +1,4 @@
-/* Copyright @ 2024 ABBYY Production LLC
+﻿/* Copyright © 2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -58,8 +58,7 @@ TEST(ParameterLayerTest, ParameterRunLearnSerializeTest)
 
     const int numOfIterations = 3;
     CPtr<CDnnBlob> expected = paramBlob->GetClone();
-    CFloatHandleStackVar diff(MathEngine(), 1);
-    diff.SetValue(learningRate * numOfIterations);
+    const float diff = ( learningRate * numOfIterations );
     MathEngine().VectorAddValue(params->GetBlob()->GetData(), expected->GetData(),
         params->GetBlob()->GetDataSize(), diff);
 

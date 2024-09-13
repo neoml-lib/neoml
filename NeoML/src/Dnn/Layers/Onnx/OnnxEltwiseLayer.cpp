@@ -1,4 +1,4 @@
-/* Copyright © 2017-2023 ABBYY
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -180,8 +180,7 @@ static void onnxArithmeticOperationImpl( COnnxEltwiseLayer::TOperation operation
 				break;
 			case COnnxEltwiseLayer::TOperation::Sub:
 				if( useScalarVersion ) {
-					CMemoryHandleStackVar<T> negValue( mathEngine );
-					negValue.SetValue( -preparedInput->GetData<T>().GetValue() );
+					const T negValue = ( -preparedInput->GetData<T>().GetValue() );
 					mathEngine.VectorAddValue( output.GetData<T>(), output.GetData<T>(),
 						output.GetDataSize(), negValue );
 				} else {
@@ -205,8 +204,7 @@ static void onnxArithmeticOperationImpl( COnnxEltwiseLayer::TOperation operation
 			case COnnxEltwiseLayer::TOperation::Div:
 				if( useScalarVersion ) {
 					// Div with scalar can be emulated only for float data
-					CFloatHandleStackVar invValue( mathEngine );
-					invValue.SetValue( 1.f / preparedInput->GetData().GetValue() );
+					const float invValue = ( 1.f / preparedInput->GetData().GetValue() );
 					mathEngine.VectorMultiply( output.GetData(), output.GetData(),
 						output.GetDataSize(), invValue );
 				} else {

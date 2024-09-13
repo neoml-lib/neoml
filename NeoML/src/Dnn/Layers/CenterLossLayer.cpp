@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -21,34 +21,15 @@ limitations under the License.
 
 namespace NeoML {
 
-CCenterLossLayer::CCenterLossLayer( IMathEngine& mathEngine ) :
-	CLossLayer( mathEngine, "CCnnCenterLossLayer" ),
-	numberOfClasses( 0 ),
-	classCentersConvergenceRate( CDnnBlob::CreateVector( mathEngine, CT_Float, 1 ) ),
-	oneMult( CDnnBlob::CreateVector( mathEngine, CT_Float, 1 ) )
-{
-	classCentersConvergenceRate->GetData().SetValue( 0.0f );
-	oneMult->GetData().SetValue( 1.f );
-}
-
-static const int CenterLossLayerVersion = 2000;
+static constexpr int centerLossLayerVersion = 2000;
 
 void CCenterLossLayer::Serialize( CArchive& archive )
 {
-	archive.SerializeVersion( CenterLossLayerVersion, CDnn::ArchiveMinSupportedVersion );
+	archive.SerializeVersion( centerLossLayerVersion, CDnn::ArchiveMinSupportedVersion );
 	CLossLayer::Serialize( archive );
 
 	archive.Serialize( numberOfClasses );
-
-	if( archive.IsStoring() ) {
-		archive << GetClassCentersConvergenceRate();
-	} else if( archive.IsLoading() ) {
-		float tmp;
-		archive >> tmp;
-		SetClassCentersConvergenceRate( tmp );
-	} else {
-		NeoAssert( false );
-	}
+	archive.Serialize( classCentersConvergenceRate );
 }
 
 void CCenterLossLayer::Reshape()
@@ -64,81 +45,77 @@ void CCenterLossLayer::BatchCalculateLossAndGradient( int batchSize, CConstFloat
 	// The total input size
 	const int inputDataSize = batchSize * vectorSize;
 
-	if(classCentersBlob == 0) {
+	if(classCentersBlob == nullptr) {
 		classCentersBlob = CDnnBlob::CreateMatrix(MathEngine(), CT_Float, numberOfClasses, vectorSize);
-		classCentersBlob->Fill<float>( 0.f );
+		classCentersBlob->Fill( 0.f );
 	}
 	// The current class centers
-	CConstFloatHandle classCenters = classCentersBlob->GetData<float>();
+	CConstFloatHandle classCenters = classCentersBlob->GetData();
 	// Remember the difference between the input features and the current class centers 
 	// for these objects according to their labels: x_i - c_{y_i}
-	CFloatHandleVar tempDiffHandle(MathEngine(), inputDataSize);
+	CFloatHandleStackVar tempDiff( MathEngine(), inputDataSize );
 
 	// Copy the current center values for the input classes
-	CLookupDimension lookupDimension;
-	lookupDimension.VectorCount = numberOfClasses;
-	lookupDimension.VectorSize = vectorSize;
+	CLookupDimension lookupDimension( numberOfClasses, vectorSize );
 	MathEngine().VectorMultichannelLookupAndCopy( batchSize, 1, label, &classCenters, &lookupDimension, 1,
-		tempDiffHandle.GetHandle(), vectorSize );
-
+		tempDiff, vectorSize );
 	// Remember the difference between the calculated features and the current centers for these objects
-	MathEngine().VectorSub( data, tempDiffHandle.GetHandle(), tempDiffHandle.GetHandle(), inputDataSize );
-
-	// Calculate the squared difference from above and the error on the elements
-	CFloatHandleVar diffSquared(MathEngine(), inputDataSize);
-	MathEngine().VectorEltwiseMultiply( tempDiffHandle.GetHandle(), tempDiffHandle.GetHandle(), diffSquared.GetHandle(), inputDataSize );
-	MathEngine().SumMatrixColumns( lossValue, diffSquared.GetHandle(), batchSize, vectorSize );
+	MathEngine().VectorSub( data, tempDiff, tempDiff, inputDataSize );
 
 	// When not learning, that is, running the network to get the current loss value,
 	// there is no need to calculate loss gradient and update the centers
-	if( lossGradient.IsNull() ) {
-		return;
+	if( !lossGradient.IsNull() ) {
+		// The x_i - c_{y_i} value is the same as derivative by the inputs
+		MathEngine().VectorCopy( lossGradient, tempDiff, inputDataSize );
+		// Update the class centers
+		updateCenters( tempDiff );
 	}
-	// The x_i - c_{y_i} value is the same as derivative by the inputs
-	MathEngine().VectorCopy( lossGradient, tempDiffHandle.GetHandle(), tempDiffHandle.Size() );
 
-	// Update the class centers
-	updateCenters( tempDiffHandle.GetHandle());
+	CFloatHandle tempDiffSquared = tempDiff;
+	// Calculate the squared difference from above and the error on the elements
+	MathEngine().VectorEltwiseMultiply( tempDiff, tempDiff, tempDiffSquared, inputDataSize );
+	MathEngine().SumMatrixColumns( lossValue, tempDiffSquared, batchSize, vectorSize );
 }
 
 // Update the class centers on the backward pass using the current batch data
-void CCenterLossLayer::updateCenters(const CFloatHandle& tempDiffHandle)
+void CCenterLossLayer::updateCenters( const CConstFloatHandle& tempDiff )
 {
+	const int inputSize = inputBlobs[0]->GetDataSize();
 	const int objectCount = inputBlobs[0]->GetObjectCount();
 	const int numberOfFeatures = inputBlobs[0]->GetObjectSize();
+	const int classCentersSize = classCentersBlob->GetDataSize();
 
-	CFloatHandle classCenters = classCentersBlob->GetData<float>();
+	CFloatHandleStackVar temp( MathEngine(), classCentersSize * 2 + inputSize );
+	CFloatHandle classCentersNumerator = temp;
+	CFloatHandle classCentersDenominator = temp + classCentersSize;
+	CFloatHandle onesTempBlob = temp + classCentersSize * 2;
+	CFloatHandle handlesArray[1];
+
+	CFloatHandle classCenters = classCentersBlob->GetData();
 	CConstIntHandle labels = inputBlobs[1]->GetData<int>();
 
-	CLookupDimension lookupDimension;
-	lookupDimension.VectorCount = numberOfClasses;
-	lookupDimension.VectorSize = numberOfFeatures;
-	CFloatHandle handlesArray[1];
 	// The numerator of the correction: the total of x_i - c_{y_i}, aggregated by classes
-	CFloatHandleVar classCentersUpdatesNumerator(MathEngine(), classCentersBlob->GetDataSize());
-	MathEngine().VectorFill(classCentersUpdatesNumerator.GetHandle(), 0.0f, classCentersUpdatesNumerator.Size());
-	handlesArray[0] = classCentersUpdatesNumerator.GetHandle();
+	MathEngine().VectorFill(classCentersNumerator, 0.0f, classCentersSize);
+	handlesArray[0] = classCentersNumerator;
 
-	MathEngine().VectorMultichannelLookupAndAddToTable( objectCount, 1, labels, 
-		handlesArray, &lookupDimension, 1, oneMult->GetData(), tempDiffHandle, numberOfFeatures );
+	CLookupDimension lookupDimension( /*count*/numberOfClasses, /*size*/numberOfFeatures );
+	MathEngine().VectorMultichannelLookupAndAddToTable( objectCount, 1, labels,
+		handlesArray, &lookupDimension, 1, 1.f, tempDiff, numberOfFeatures );
 
-	CFloatHandleVar onesTemporaryBlob(MathEngine(), inputBlobs[0]->GetDataSize());
-	MathEngine().VectorFill(onesTemporaryBlob.GetHandle(), 1.0f, onesTemporaryBlob.Size());
+	MathEngine().VectorFill( onesTempBlob, 1.f, inputSize );
 	// The denominator of the correction: 1 + the number of elements of this class in the batch
-	CFloatHandleVar classCentersUpdatesDenominator(MathEngine(), classCentersBlob->GetDataSize());
-	MathEngine().VectorFill(classCentersUpdatesDenominator.GetHandle(), 1.0f, classCentersUpdatesDenominator.Size());
-	handlesArray[0] = classCentersUpdatesDenominator.GetHandle();
+	MathEngine().VectorFill(classCentersDenominator, 1.f, classCentersSize);
+	handlesArray[0] = classCentersDenominator;
 
-	MathEngine().VectorMultichannelLookupAndAddToTable( objectCount, 1, labels, 
-		handlesArray, &lookupDimension, 1, oneMult->GetData(), onesTemporaryBlob.GetHandle(), numberOfFeatures );
+	MathEngine().VectorMultichannelLookupAndAddToTable( objectCount, 1, labels,
+		handlesArray, &lookupDimension, 1, 1.f, onesTempBlob, numberOfFeatures );
 
-	// The final correction = \alpha * numerator / denominator
-	MathEngine().VectorEltwiseDivide( classCentersUpdatesNumerator.GetHandle(), classCentersUpdatesDenominator.GetHandle(),
-		classCentersUpdatesNumerator.GetHandle(), classCentersBlob->GetDataSize() );
-	MathEngine().VectorMultiply( classCentersUpdatesNumerator.GetHandle(), classCentersUpdatesNumerator.GetHandle(),
-		classCentersBlob->GetDataSize(), classCentersConvergenceRate->GetData() );
-	MathEngine().VectorAdd( classCenters, classCentersUpdatesNumerator.GetHandle(), classCenters,
-		classCentersBlob->GetDataSize() );
+	// The final correction = alpha * numerator / denominator
+	MathEngine().VectorEltwiseDivide( classCentersNumerator, classCentersDenominator,
+		classCentersNumerator, classCentersSize );
+	MathEngine().VectorMultiply( classCentersNumerator, classCentersNumerator,
+		classCentersSize, classCentersConvergenceRate );
+	MathEngine().VectorAdd( classCenters, classCentersNumerator, classCenters, classCentersSize );
 }
 
 CLayerWrapper<CCenterLossLayer> CenterLoss(

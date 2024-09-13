@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -32,15 +32,11 @@ static void softplus( const CConstFloatHandle& first, const CFloatHandle& result
 	mathEngine.VectorExp( temp, temp, size );
 
 	// temp = log( 1 + e^-|x| )
-	CFloatHandleStackVar one( mathEngine );
-	one.SetValue( 1 );
-	mathEngine.VectorAddValue( temp, temp, size, one );
+	mathEngine.VectorAddValue( temp, temp, size, 1.f );
 	mathEngine.VectorLog( temp, temp, size );
 
 	// result = max( 0, x )
-	CFloatHandleStackVar zero( mathEngine );
-	zero.SetValue( 0 );
-	mathEngine.VectorReLU( first, result, size, zero );
+	mathEngine.VectorReLU( first, result, size, 0.f );
 
 	// result = max( 0, x ) + log( 1 + e^-|x| )
 	mathEngine.VectorAdd( result, temp, result, size );
@@ -50,36 +46,20 @@ static void softplus( const CConstFloatHandle& first, const CFloatHandle& result
 
 const float CBinaryFocalLossLayer::DefaultFocalForceValue = 2.0f;
 
-static const int BinaryFocalLossLayerVersion = 2000;
+static constexpr int binaryFocalLossLayerVersion = 2000;
 
 void CBinaryFocalLossLayer::Serialize( CArchive& archive )
 {
-	archive.SerializeVersion( BinaryFocalLossLayerVersion, CDnn::ArchiveMinSupportedVersion );
+	archive.SerializeVersion( binaryFocalLossLayerVersion, CDnn::ArchiveMinSupportedVersion );
 	CLossLayer::Serialize( archive );
 
-	if( archive.IsStoring() ) {
-		float focalForceValue = focalForce->GetData().GetValue();
-		archive.Serialize( focalForceValue );
-	} else if( archive.IsLoading() ) {
-		float focalForceValue;
-		archive.Serialize( focalForceValue );
-		focalForce->GetData().SetValue( focalForceValue );
-	} else {
-		NeoAssert( false );
-	}
+	archive.Serialize( focalForce );
 }
 
 void CBinaryFocalLossLayer::SetFocalForce( float value )
 {
 	NeoAssert( value > 0.0f );
-	focalForce->GetData().SetValue( value );
-}
-
-CBinaryFocalLossLayer::CBinaryFocalLossLayer( IMathEngine& mathEngine ) :
-	CLossLayer( mathEngine, "CCnnBinaryFocalLossLayer" ),
-	focalForce( CDnnBlob::CreateVector( mathEngine, CT_Float, 1 ) )
-{
-	SetFocalForce( DefaultFocalForceValue );
+	focalForce = value;
 }
 
 void CBinaryFocalLossLayer::Reshape()
@@ -103,7 +83,7 @@ void CBinaryFocalLossLayer::BatchCalculateLossAndGradient( int batchSize, CConst
 	MathEngine().VectorEltwiseNegMultiply( label, data, tempVector, batchSize );
 	// sigmoidVector = sigma(-y*r)
 	MathEngine().VectorSigmoid( tempVector, sigmoidVector, batchSize );
-	MathEngine().VectorPower( focalForce->GetData().GetValue(), sigmoidVector,
+	MathEngine().VectorPower( focalForce, sigmoidVector,
 		sigmoidPowerFocal, batchSize ); 
 	// entropyValues = log(1 + e^(-y*r))
 	CFloatHandle entropyValues = tempVector;
@@ -123,13 +103,11 @@ void CBinaryFocalLossLayer::calculateGradient( CFloatHandle entropyValues,
 	NeoAssert( !lossGradient.IsNull() );
 	CFloatHandleStackVar tempVector( MathEngine(), batchSize );
 	// tempVector = sigma(-y*r) - 1
-	CFloatHandleStackVar minusOne( MathEngine() );
-	minusOne.SetValue( -1.f );
-	MathEngine().VectorAddValue( sigmoidVector, tempVector, batchSize, minusOne );
+	MathEngine().VectorAddValue( sigmoidVector, tempVector, batchSize, -1.f );
 	// tempVector = (sigma(-y*r) - 1)*log(1+e^(-y*r))^M
 	MathEngine().VectorEltwiseMultiply( tempVector, entropyValues, tempVector, batchSize );
 	// tempVector = focalForce*(sigma(-y*r) - 1)*log(1+e^(-y*r))
-	MathEngine().VectorMultiply( tempVector, tempVector, batchSize, focalForce->GetData() );
+	MathEngine().VectorMultiply( tempVector, tempVector, batchSize, focalForce );
 	// tempVector = focalForce*(sigma(-y*r) - 1)*log(1+e^(-y*r)) - sigma(-y*r)
 	MathEngine().VectorSub( tempVector, sigmoidVector, tempVector, batchSize ); 
 	// tempVector = sigma(-y*r)^focalForce*(focalForce*(sigma(-y*r) - 1)*log(1+e^(-y*r)) - sigma(-y*r))

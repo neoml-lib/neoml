@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -30,7 +30,7 @@ namespace NeoML {
 class NEOML_API CBinaryFocalLossLayer : public CLossLayer {
 	NEOML_DNN_LAYER( CBinaryFocalLossLayer )
 public:
-	explicit CBinaryFocalLossLayer( IMathEngine& mathEngine );
+	explicit CBinaryFocalLossLayer( IMathEngine& mathEngine ) : CLossLayer( mathEngine, "CCnnBinaryFocalLossLayer" ) {}
 
 	void Serialize( CArchive& archive ) override;
 
@@ -39,19 +39,19 @@ public:
 	// This parameter controls the degree to which the algorithm focuses 
 	// on the similar objects (>0, the greater it is the stronger the focus)
 	// The paper referred to calls this parameter gamma
-	float GetFocalForce() const { return focalForce->GetData().GetValue(); }
+	float GetFocalForce() const { return focalForce; }
 	void SetFocalForce( float value );
 
 protected:
 	void Reshape() override;
-	virtual void BatchCalculateLossAndGradient( int batchSize, CConstFloatHandle data,
+	void BatchCalculateLossAndGradient( int batchSize, CConstFloatHandle data,
 		int vectorSize, CConstFloatHandle label, int labelSize, CFloatHandle lossValue,
 		CFloatHandle lossGradient ) override;
 
 private:
 	// gamma parameter from the referred paper
 	// Controls the degree to which the algorithm focuses on objects difficult to classify
-	CPtr<CDnnBlob> focalForce;
+	float focalForce = CBinaryFocalLossLayer::DefaultFocalForceValue;
 
 	void calculateGradient( CFloatHandle entropyValues, CFloatHandle sigmoidVector, CFloatHandle sigmoidMinusOneVector,
 		CConstFloatHandle labels, int batchSize, CFloatHandle lossGradient );

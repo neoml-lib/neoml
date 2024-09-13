@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -18,53 +18,28 @@ limitations under the License.
 
 #include <NeoML/Dnn/Layers/FocalLossLayer.h>
 
-//////////////////////////////////////////////////////////////////////////
-
-static const float MinProbValue = 1e-6f;
-static const float MaxProbValue = 1.0f;
-
-//////////////////////////////////////////////////////////////////////////
-
 namespace NeoML {
+
+// The handle for acceptable minimum and maximum probability values (so that separation can be performed correctly)
+static constexpr float focalLossMinProbValue = 1e-6f;
+static constexpr float focalLossMaxProbValue = 1.0f;
 
 const float CFocalLossLayer::DefaultFocalForceValue = 2.0f;
 
-static const int FocalLossLayerVersion = 2000;
+static constexpr int focalLossLayerVersion = 2000;
 
 void CFocalLossLayer::Serialize( CArchive& archive )
 {
-	archive.SerializeVersion( FocalLossLayerVersion, CDnn::ArchiveMinSupportedVersion );
+	archive.SerializeVersion( focalLossLayerVersion, CDnn::ArchiveMinSupportedVersion );
 	CLossLayer::Serialize( archive );
 
-	if( archive.IsStoring() ) {
-		float value = focalForce->GetData().GetValue();
-		archive.Serialize( value );
-	} else if( archive.IsLoading() ) {
-		float value;
-		archive.Serialize( value );
-		focalForce->GetData().SetValue( value );
-	} else {
-		NeoAssert( false );
-	}
+	archive.Serialize( focalForce );
 }
 
 void CFocalLossLayer::SetFocalForce( float value )
 {
 	NeoAssert( value > 0.0f );
-	focalForce->GetData().SetValue( value );
-}
-
-CFocalLossLayer::CFocalLossLayer( IMathEngine& mathEngine ) :
-	CLossLayer( mathEngine, "FmlCnnFocalLossLayer" ),
-	focalForce( CDnnBlob::CreateVector( mathEngine, CT_Float, 1 ) ),
-	minusOne( CDnnBlob::CreateVector( mathEngine, CT_Float, 1 ) ),
-	minProbValue( CDnnBlob::CreateVector( mathEngine, CT_Float, 1 ) ),
-	maxProbValue( CDnnBlob::CreateVector( mathEngine, CT_Float, 1 ) )
-{
-	SetFocalForce( DefaultFocalForceValue );
-	minusOne->GetData().SetValue( -1 );
-	minProbValue->GetData().SetValue( MinProbValue );
-	maxProbValue->GetData().SetValue( MaxProbValue );
+	focalForce = ( value );
 }
 
 void CFocalLossLayer::Reshape()
@@ -81,67 +56,67 @@ void CFocalLossLayer::BatchCalculateLossAndGradient( int batchSize, CConstFloatH
 	CConstFloatHandle label, int labelSize, CFloatHandle lossValue, CFloatHandle lossGradient )
 {
 	const int dataSize = vectorSize * batchSize;
-	CFloatHandleVar tempMatrixHandle( MathEngine(), dataSize );
-	// tempMatrix: P_t * y_t
-	MathEngine().VectorEltwiseMultiply( data, label, tempMatrixHandle.GetHandle(), dataSize );
+	CFloatHandleStackVar temp( MathEngine(), dataSize + batchSize * 3 );
+	CFloatHandle tempMatrix = temp;
+	CFloatHandle remainderVector = temp + dataSize;
+	CFloatHandle entropyPerBatch = remainderVector + batchSize;
+	CFloatHandle correctClassProbabilityPerBatch = entropyPerBatch + batchSize;
 
-	// correctClassProbabilityPerBatch: P_t * y_t
-	CFloatHandleVar correctClassProbabilityPerBatch( MathEngine(), batchSize );
-	MathEngine().SumMatrixColumns( correctClassProbabilityPerBatch.GetHandle(), tempMatrixHandle.GetHandle(),
-		batchSize, labelSize );
+	{
+		// tempMatrix: P_t * y_t
+		MathEngine().VectorEltwiseMultiply( data, label, tempMatrix, dataSize );
+		// correctClassProbabilityPerBatch: P_t * y_t
+		MathEngine().SumMatrixColumns( correctClassProbabilityPerBatch, tempMatrix, batchSize, labelSize );
 
-	// tempMatrix: (1 - P_t) * y_t
-	// remainderVector: (1 - P_t) * y_t
-	MathEngine().VectorFill( tempMatrixHandle.GetHandle(), 1.0, batchSize * vectorSize );
-	MathEngine().VectorSub( tempMatrixHandle.GetHandle(), data, tempMatrixHandle.GetHandle(), dataSize );
-	MathEngine().VectorEltwiseMultiply( tempMatrixHandle.GetHandle(), label, tempMatrixHandle.GetHandle(), dataSize );
-	CFloatHandleVar remainderVector( MathEngine(), batchSize );
-	MathEngine().SumMatrixColumns( remainderVector.GetHandle(), tempMatrixHandle.GetHandle(), batchSize, labelSize );
+		// tempMatrix: (1 - P_t) * y_t
+		// remainderVector: (1 - P_t) * y_t
+		MathEngine().VectorFill( tempMatrix, 1.0, batchSize * vectorSize );
+		MathEngine().VectorSub( tempMatrix, data, tempMatrix, dataSize );
+		MathEngine().VectorEltwiseMultiply( tempMatrix, label, tempMatrix, dataSize );
+		MathEngine().SumMatrixColumns( remainderVector, tempMatrix, batchSize, labelSize );
+	}
+
+	CFloatHandle remainderPowered = tempMatrix;
 
 	// batchEntropy: -log(P_t)
-	CFloatHandleVar entropyPerBatch( MathEngine(), batchSize );
-	MathEngine().VectorNegLog( correctClassProbabilityPerBatch.GetHandle(), entropyPerBatch.GetHandle(), batchSize );
-
+	MathEngine().VectorNegLog( correctClassProbabilityPerBatch, entropyPerBatch, batchSize );
 	// Loss
-	// tempMatrix: (1-P_t)^focalForce
-	MathEngine().VectorPower( focalForce->GetData().GetValue(), remainderVector.GetHandle(), tempMatrixHandle.GetHandle(), batchSize );
-	MathEngine().VectorEltwiseMultiply( tempMatrixHandle.GetHandle(), entropyPerBatch.GetHandle(), lossValue, batchSize );
+	// remainderPowered: (1-P_t)^focalForce
+	MathEngine().VectorPower( focalForce, remainderVector, remainderPowered, batchSize );
+	MathEngine().VectorEltwiseMultiply( entropyPerBatch, remainderPowered, lossValue, batchSize );
 
 	// Gradient
 	if( !lossGradient.IsNull() ) {
-		calculateGradient( correctClassProbabilityPerBatch.GetHandle(), batchSize, labelSize, remainderVector.GetHandle(),
-			entropyPerBatch.GetHandle(), tempMatrixHandle.GetHandle(), label, lossGradient );
+		calculateGradient( correctClassProbabilityPerBatch, batchSize, labelSize, remainderVector,
+			entropyPerBatch, remainderPowered, label, lossGradient );
 	}
 }
 
-void CFocalLossLayer::calculateGradient( CFloatHandle correctClassProbabilityPerBatchHandle, int batchSize, int labelSize,
-	CFloatHandle remainderVectorHandle, CFloatHandle entropyPerBatchHandle, CFloatHandle tempMatrixHandle, CConstFloatHandle label,
+void CFocalLossLayer::calculateGradient( CFloatHandle correctClassProbabilityPerBatch, int batchSize, int labelSize,
+	CFloatHandle remainderVector, CFloatHandle entropyPerBatch, CFloatHandle remainderPowered, CConstFloatHandle label,
 	CFloatHandle lossGradient )
 {
-	int dataSize = labelSize * batchSize;
-	// inversedProbailitiesHandle: 1 / P_t
-	CFloatHandle inversedProbailitiesHandle = correctClassProbabilityPerBatchHandle;
-	MathEngine().VectorMinMax( correctClassProbabilityPerBatchHandle, correctClassProbabilityPerBatchHandle, batchSize,
-		minProbValue->GetData(), maxProbValue->GetData() );
-	MathEngine().VectorInv( correctClassProbabilityPerBatchHandle, inversedProbailitiesHandle, batchSize );
+	const int dataSize = labelSize * batchSize;
+	// inversedProbailities: 1 / P_t
+	CFloatHandle inversedProbailities = correctClassProbabilityPerBatch;
+	MathEngine().VectorMinMax( correctClassProbabilityPerBatch, correctClassProbabilityPerBatch, batchSize,
+		focalLossMinProbValue, focalLossMaxProbValue );
+	MathEngine().VectorInv( correctClassProbabilityPerBatch, inversedProbailities, batchSize );
 
 	// diffPart: (1 - P_t )^focalForce / P_t
-	CFloatHandle diffPart = inversedProbailitiesHandle;
-	MathEngine().VectorEltwiseMultiply( tempMatrixHandle, inversedProbailitiesHandle,
-		diffPart, batchSize );
+	CFloatHandle diffPart = inversedProbailities;
+	MathEngine().VectorEltwiseMultiply( remainderPowered, inversedProbailities, diffPart, batchSize );
 
-	// tempMatrix: (1 - P_t )^(focalForce - 1)
-	MathEngine().VectorPower( focalForce->GetData().GetValue() - 1, remainderVectorHandle,
-		tempMatrixHandle, batchSize );
+	// remainderPowered: (1 - P_t )^(focalForce - 1)
+	MathEngine().VectorPower( focalForce - 1, remainderVector, remainderPowered, batchSize );
 	// batchEntropy: - (1 - P_t )^(focalForce - 1) log(P_t)
-	MathEngine().VectorEltwiseMultiply( tempMatrixHandle, entropyPerBatchHandle,
-		entropyPerBatchHandle, batchSize );
+	MathEngine().VectorEltwiseMultiply( remainderPowered, entropyPerBatch,
+		entropyPerBatch, batchSize );
 	// diffPart: (1 - P_t )^focalForce / P_t - focalForce(1 - P_t )^(focalForce - 1) log(P_t)
-	MathEngine().VectorMultiplyAndAdd( diffPart, entropyPerBatchHandle,
-		diffPart, batchSize, focalForce->GetData() );
+	MathEngine().VectorMultiplyAndAdd( diffPart, entropyPerBatch, diffPart, batchSize, focalForce );
 
 	// diffPart: - (1 - P_t )^focalForce / P_t + focalForce(1 - P_t )^(focalForce - 1) log(P_t)
-	MathEngine().VectorMultiply( diffPart, diffPart, batchSize, minusOne->GetData() );
+	MathEngine().VectorMultiply( diffPart, diffPart, batchSize, -1.f );
 	MathEngine().MultiplyDiagMatrixByMatrix( diffPart, batchSize, label, labelSize, lossGradient, dataSize );
 }
 
@@ -154,4 +129,5 @@ CLayerWrapper<CFocalLossLayer> FocalLoss( float focalForce, float lossWeight )
 		}
 	);
 }
+
 } // namespace NeoML

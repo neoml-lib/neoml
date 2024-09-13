@@ -1,4 +1,4 @@
-/* Copyright © 2017-2023 ABBYY
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -352,18 +352,16 @@ void CCpuMathEngine::VectorSpreadValues( const CConstFloatHandle& sourceHandle, 
 }
 
 void CCpuMathEngine::VectorAddValue( const CConstFloatHandle& firstHandle, const CFloatHandle& resultHandle,
-	int vectorSize, const CConstFloatHandle& addition )
+	int vectorSize, CFloatParam addition )
 {
 	ASSERT_EXPR( firstHandle.GetMathEngine() == this );
 	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
-	ASSERT_EXPR( addition.GetMathEngine() == this );
 	CCpuExecutionScope scope;
 
 	const float* first = GetRaw( firstHandle );
 	float* result = GetRaw( resultHandle );
-	float value = *GetRaw( addition );
 
-	vectorAddValue( first, result, vectorSize, value );
+	vectorAddValue( first, result, vectorSize, addition );
 }
 
 void CCpuMathEngine::VectorDotProduct( const CConstFloatHandle& firstHandle, const CConstFloatHandle& secondHandle,
@@ -466,29 +464,23 @@ void CCpuMathEngine::VectorEltwiseMultiply( const CConstIntHandle& firstHandle,
 }
 
 void CCpuMathEngine::VectorMultiply( const CConstFloatHandle& firstHandle,
-	const CFloatHandle& resultHandle, int vectorSize, const CConstFloatHandle& multiplierHandle )
+	const CFloatHandle& resultHandle, int vectorSize, CFloatParam mult )
 {
 	ASSERT_EXPR( firstHandle.GetMathEngine() == this );
-	ASSERT_EXPR( multiplierHandle.GetMathEngine() == this );
 	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
 	CCpuExecutionScope scope;
 
-	const float multiplier = *GetRaw( multiplierHandle );
-
-	vectorMultiply( GetRaw( firstHandle ), GetRaw( resultHandle ), vectorSize, multiplier );
+	NeoML::vectorMultiply( GetRaw( firstHandle ), GetRaw( resultHandle ), vectorSize, mult );
 }
 
 void CCpuMathEngine::VectorMultiply( const CConstIntHandle& firstHandle,
-	const CIntHandle& resultHandle, int vectorSize, const CConstIntHandle& multiplierHandle )
+	const CIntHandle& resultHandle, int vectorSize, CIntParam mult )
 {
 	ASSERT_EXPR( firstHandle.GetMathEngine() == this );
-	ASSERT_EXPR( multiplierHandle.GetMathEngine() == this );
 	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
 	CCpuExecutionScope scope;
 
-	const int multiplier = *GetRaw( multiplierHandle );
-
-	vectorMultiply( GetRaw( firstHandle ), GetRaw( resultHandle ), vectorSize, multiplier );
+	NeoML::vectorMultiply( GetRaw( firstHandle ), GetRaw( resultHandle ), vectorSize, mult );
 }
 
 void CCpuMathEngine::VectorEltwiseMultiply( const CConstFloatHandle& firstHandle,
@@ -548,7 +540,7 @@ void CCpuMathEngine::VectorAbsDiff( const CConstFloatHandle& sourceGradHandle, i
 	}
 }
 
-void CCpuMathEngine::VectorMax( const CConstFloatHandle& firstHandle, float secondValue, const CFloatHandle& resultHandle, int vectorSize )
+void CCpuMathEngine::VectorMax( const CConstFloatHandle& firstHandle, CFloatParam secondValue, const CFloatHandle& resultHandle, int vectorSize )
 {
 	ASSERT_EXPR( firstHandle.GetMathEngine() == this );
 	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
@@ -558,13 +550,13 @@ void CCpuMathEngine::VectorMax( const CConstFloatHandle& firstHandle, float seco
 	float* result = GetRaw( resultHandle );
 
 	for( int i = 0; i < vectorSize; ++i ) {
-		*result = ( *first >= secondValue ) ? *first : secondValue;
+		*result = ( *first >= secondValue ) ? *first : float(secondValue);
 		result++;
 		first++;
 	}
 }
 
-void CCpuMathEngine::VectorMaxDiff( const CConstFloatHandle& firstHandle, float secondValue, const CFloatHandle& gradHandle,
+void CCpuMathEngine::VectorMaxDiff( const CConstFloatHandle& firstHandle, CFloatParam secondValue, const CFloatHandle& gradHandle,
 	int gradHeight, int gradWidth )
 {
 	ASSERT_EXPR( firstHandle.GetMathEngine() == this );
@@ -633,37 +625,29 @@ void CCpuMathEngine::VectorNeg( const CConstFloatHandle& firstHandle, const CFlo
 }
 
 void CCpuMathEngine::VectorMinMax( const CConstFloatHandle& firstHandle, const CFloatHandle& resultHandle, int vectorSize,
-	const CConstFloatHandle& minHandle, const CConstFloatHandle& maxHandle )
+	CFloatParam minValue, CFloatParam maxValue )
 {
 	ASSERT_EXPR( firstHandle.GetMathEngine() == this );
-	ASSERT_EXPR( minHandle.GetMathEngine() == this );
 	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
 	CCpuExecutionScope scope;
 
-	const float minValue = *GetRaw( minHandle );
-	const float maxValue = *GetRaw( maxHandle );
-	
 	vectorMinMax( GetRaw( firstHandle ), GetRaw( resultHandle ), minValue, maxValue, vectorSize );
 }
 
 void CCpuMathEngine::VectorMinMaxDiff( const CConstFloatHandle& sourceGradHandle, int gradHeight, int gradWidth,
 	const CConstFloatHandle& firstHandle, const CFloatHandle& resultHandle,
-	const CConstFloatHandle& minHandle, const CConstFloatHandle& maxHandle )
+	CFloatParam minValue, CFloatParam maxValue )
 {
 	ASSERT_EXPR( sourceGradHandle.GetMathEngine() == this );
 	ASSERT_EXPR( gradHeight > 0 );
 	ASSERT_EXPR( gradWidth > 0 );
 	ASSERT_EXPR( firstHandle.GetMathEngine() == this );
 	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
-	ASSERT_EXPR( minHandle.GetMathEngine() == this );
-	ASSERT_EXPR( maxHandle.GetMathEngine() == this );
 	CCpuExecutionScope scope;
 
 	const float* first = GetRaw( firstHandle );
 	const float* sourceGrad = GetRaw( sourceGradHandle );
 	float* result = GetRaw( resultHandle );
-	const float minValue = *GetRaw( minHandle );
-	const float maxValue = *GetRaw( maxHandle );
 
 	const int firstSize = gradHeight == 1 ? gradWidth : gradHeight;
 	const int gradSize = gradHeight == 1 ? 1 : gradWidth;
@@ -758,6 +742,7 @@ void CCpuMathEngine::VectorEltwiseLess( const CConstIntHandle& firstHandle, cons
 	ASSERT_EXPR( secondHandle.GetMathEngine() == this );
 	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
 	CCpuExecutionScope scope;
+
 	vectorEltwiseLessImpl( firstHandle, secondHandle, resultHandle, vectorSize );
 }
 
@@ -838,7 +823,7 @@ void CCpuMathEngine::VectorHSwish( const CConstFloatHandle& firstHandle, const C
 }
 
 void CCpuMathEngine::VectorHardSigmoid( const CConstFloatHandle& firstHandle, const CFloatHandle& resultHandle, int vectorSize,
-	const CConstFloatHandle& slopeHandle, const CConstFloatHandle& biasHandle )
+	CFloatParam slope, CFloatParam bias )
 {
 	ASSERT_EXPR( firstHandle.GetMathEngine() == this );
 	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
@@ -847,32 +832,29 @@ void CCpuMathEngine::VectorHardSigmoid( const CConstFloatHandle& firstHandle, co
 	const float* first = GetRaw(firstHandle);
 	float* result = GetRaw(resultHandle);
 
-	const float slope = *GetRaw( slopeHandle );
-	const float bias = *GetRaw( biasHandle );
-
 	ASSERT_EXPR( slope != 0.f );
 
 	vectorHardSigmoid( first, result, slope, bias, vectorSize );
 }
 
 void CCpuMathEngine::VectorLeakyReLU( const CConstFloatHandle& firstHandle, const CFloatHandle& resultHandle,
-	int vectorSize, const CConstFloatHandle& alphaHandle )
+	int vectorSize, CFloatParam alpha )
 {
 	ASSERT_EXPR( firstHandle.GetMathEngine() == this );
-	ASSERT_EXPR( alphaHandle.GetMathEngine() == this );
 	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
 	CCpuExecutionScope scope;
-	vectorLeakyReLU( GetRaw( firstHandle ), GetRaw( resultHandle ), *GetRaw( alphaHandle ), vectorSize );
+
+	vectorLeakyReLU( GetRaw( firstHandle ), GetRaw( resultHandle ), alpha, vectorSize );
 }
 
 void CCpuMathEngine::VectorELU( const CConstFloatHandle& firstHandle, const CFloatHandle& resultHandle,
-	int vectorSize, const CConstFloatHandle& alphaHandle )
+	int vectorSize, CFloatParam alpha )
 {
 	ASSERT_EXPR( firstHandle.GetMathEngine() == this );
-	ASSERT_EXPR( alphaHandle.GetMathEngine() == this );
 	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
 	CCpuExecutionScope scope;
-	vectorELU( GetRaw( firstHandle ), GetRaw( resultHandle ), *GetRaw( alphaHandle ), vectorSize );
+
+	vectorELU( GetRaw( firstHandle ), GetRaw( resultHandle ), alpha, vectorSize );
 }
 
 void CCpuMathEngine::VectorHardTanh(const CConstFloatHandle& firstHandle, const CFloatHandle& resultHandle, int vectorSize)
@@ -880,6 +862,7 @@ void CCpuMathEngine::VectorHardTanh(const CConstFloatHandle& firstHandle, const 
 	ASSERT_EXPR( firstHandle.GetMathEngine() == this );
 	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
 	CCpuExecutionScope scope;
+
 	vectorMinMax( GetRaw( firstHandle ), GetRaw( resultHandle ), -1.f, 1.f, vectorSize );
 }
 

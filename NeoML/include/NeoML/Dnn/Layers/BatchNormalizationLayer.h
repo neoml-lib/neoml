@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -41,7 +41,7 @@ public:
 	// Convergence rate for slow statistics (gathered across several batches)
 	// This value may be from (0; 1] interval
 	// The smaller this value, the more statistics takes previous data into account (~ 1 / rate)
-	float GetSlowConvergenceRate() const { return slowConvergenceRate->GetData().GetValue(); }
+	float GetSlowConvergenceRate() const { return slowConvergenceRate; }
 	void SetSlowConvergenceRate(float rate);
 
 	// The final normalization parameters
@@ -67,29 +67,13 @@ protected:
 	int BlobsForLearn() const override { return 0; }
 
 private:
-	bool isChannelBased;
-	bool isZeroFreeTerm; // indicates if the free term is zero
-	CPtr<CDnnBlob> slowConvergenceRate; // the convergence rate for slow statistics
-	CPtr<CDnnBlob> finalParams; // the final linear operation parameters (gamma, beta)
-
-	// The variables used to calculate statistics
-	CPtr<CDnnBlob> varianceEpsilon;
-	CPtr<CDnnBlob> fullBatchInv;
-	CPtr<CDnnBlob> varianceNorm;
-	CPtr<CDnnBlob> residual;
-
-	CPtr<CDnnBlob> normalized;
-
-	CPtr<CDnnBlob> varianceMult;
-
 	// The training parameters names
 	enum TParamName {
-		PN_Gamma = 0,		// gamma
-		PN_Beta,			// beta
+		PN_Gamma = 0,
+		PN_Beta,
 
-		PN_Count,
+		PN_Count
 	};
-
 	// Internal (untrainable) parameters
 	enum TInternalParamName {
 		IPN_Average = 0,		// the average across the batch
@@ -100,9 +84,22 @@ private:
 
 		IPN_Count,
 	};
-	CPtr<CDnnBlob> internalParams;
 
-	bool useFinalParamsForInitialization; // indicates if final params should be used for initialization
+	CPtr<CDnnBlob> finalParams; // the final linear operation parameters (gamma, beta)
+	CPtr<CDnnBlob> internalParams;
+	CPtr<CDnnBlob> normalized;
+
+	float slowConvergenceRate = 0.01f; // the convergence rate for slow statistics
+	// The variables used to calculate statistics
+	float fullBatchInv = 0.f;
+	float varianceNorm = 0.f;
+	float residual = 0.f;
+
+	// Flags
+	bool isChannelBased = true;
+	bool isZeroFreeTerm = false; // indicates if the free term is zero
+	bool isFinalParamDirty = false; // indicates if final params need updating
+	bool useFinalParamsForInitialization = false; // indicates if final params should be used for initialization
 
 	bool checkAndCreateParams();
 	void getFullBatchAndObjectSize(int& fullBatchSize, int& objectSize);
@@ -115,10 +112,7 @@ private:
 	void updateSlowParams(bool isInit);
 	void backwardWhenLearning();
 	void backwardWhenNoLearning();
-
-	bool isFinalParamDirty; // indicates if final params need updating
 	void updateFinalParams();
-
 	void initializeFromFinalParams();
 };
 

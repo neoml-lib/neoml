@@ -1,4 +1,4 @@
-/* Copyright © 2017-2023 ABBYY
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -119,16 +119,14 @@ void CCpuMathEngine::VectorSumAdd(const CConstFloatHandle& firstHandle, int vect
 }
 
 void CCpuMathEngine::VectorReLU(const CConstFloatHandle& firstHandle,
-	const CFloatHandle& resultHandle, int vectorSize, const CConstFloatHandle& upperThresholdHandle)
+	const CFloatHandle& resultHandle, int vectorSize, CFloatParam threshold)
 {
 	ASSERT_EXPR( firstHandle.GetMathEngine() == this );
 	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
-	ASSERT_EXPR( upperThresholdHandle.GetMathEngine() == this );
 	CCpuExecutionScope scope;
 
 	const float* first = GetRaw( firstHandle );
 	float* result = GetRaw( resultHandle );
-	const float threshold = *GetRaw( upperThresholdHandle );
 
 	if( threshold > 0 ) {
 		vectorReLU( first, result, vectorSize, threshold );
@@ -360,16 +358,14 @@ void CCpuMathEngine::VectorAdd(const CConstIntHandle& firstHandle, const CConstI
 }
 
 void CCpuMathEngine::VectorAddValue(const CConstIntHandle& firstHandle,
-	const CIntHandle& resultHandle, int vectorSize, const CConstIntHandle& additionHandle)
+	const CIntHandle& resultHandle, int vectorSize, const CIntParam addition)
 {
 	ASSERT_EXPR( firstHandle.GetMathEngine() == this );
 	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
-	ASSERT_EXPR( additionHandle.GetMathEngine() == this );
 	CCpuExecutionScope scope;
 
 	const int* first = GetRaw(firstHandle);
 	int* result = GetRaw(resultHandle);
-	int addition = *GetRaw(additionHandle);
 
 	int count4 = GetCount4(vectorSize);
 
@@ -495,7 +491,7 @@ void CCpuMathEngine::VectorSub(const CConstFloatHandle& firstHandle, float secon
 
 void CCpuMathEngine::VectorMultiplyAndAdd(const CConstFloatHandle& firstHandle,
 	const CConstFloatHandle& secondHandle, const CFloatHandle& resultHandle,
-	int vectorSize, const CConstFloatHandle& multHandle)
+	int vectorSize, CFloatParam multiplier)
 {
 	ASSERT_EXPR( firstHandle.GetMathEngine() == this );
 	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
@@ -507,7 +503,7 @@ void CCpuMathEngine::VectorMultiplyAndAdd(const CConstFloatHandle& firstHandle,
 	float* result = GetRaw(resultHandle);
 	int count = GetCount4(vectorSize);
 
-	float32_t mult = *GetRaw(multHandle);
+	float32_t mult = multiplier;
 
 	for(int i = 0; i < count; ++i) {
 		float32x4_t res = vmlaq_n_f32(LoadNeon4(first), LoadNeon4(second), mult);
@@ -526,12 +522,11 @@ void CCpuMathEngine::VectorMultiplyAndAdd(const CConstFloatHandle& firstHandle,
 
 void CCpuMathEngine::VectorMultiplyAndSub(const CConstFloatHandle& firstHandle,
 	const CConstFloatHandle& secondHandle, const CFloatHandle& resultHandle,
-	int vectorSize, const CConstFloatHandle& multHandle)
+	int vectorSize, CFloatParam multiplier)
 {
 	ASSERT_EXPR( firstHandle.GetMathEngine() == this );
 	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
 	ASSERT_EXPR( secondHandle.GetMathEngine() == this );
-	ASSERT_EXPR( multHandle.GetMathEngine() == this );
 	CCpuExecutionScope scope;
 
 	const float* first = GetRaw(firstHandle);
@@ -539,7 +534,7 @@ void CCpuMathEngine::VectorMultiplyAndSub(const CConstFloatHandle& firstHandle,
 	float* result = GetRaw(resultHandle);
 	int count = GetCount4(vectorSize);
 
-	float32_t mult = *GetRaw(multHandle);
+	float32_t mult = multiplier;
 
 	for(int i = 0; i < count; ++i) {
 		float32x4_t res = vmlsq_n_f32(LoadNeon4(first), LoadNeon4(second), mult);
@@ -557,17 +552,13 @@ void CCpuMathEngine::VectorMultiplyAndSub(const CConstFloatHandle& firstHandle,
 }
 
 void CCpuMathEngine::VectorNegMultiply(const CConstFloatHandle& firstHandle,
-	const CFloatHandle& resultHandle, int vectorSize, const CConstFloatHandle& multHandle)
+	const CFloatHandle& resultHandle, int vectorSize, CFloatParam mult)
 {
 	ASSERT_EXPR( firstHandle.GetMathEngine() == this );
 	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
-	ASSERT_EXPR( multHandle.GetMathEngine() == this );
 	CCpuExecutionScope scope;
 
-	CFloatHandleStackVar mult( mathEngine() );
-	mult.SetValue( -*GetRaw(multHandle) );
-
-	VectorMultiply(firstHandle, resultHandle, vectorSize, mult);
+	VectorMultiply(firstHandle, resultHandle, vectorSize, -mult);
 }
 
 void CCpuMathEngine::VectorEltwiseNegMultiply(const CConstFloatHandle& firstHandle,
@@ -724,11 +715,10 @@ void CCpuMathEngine::VectorEqual( const CConstIntHandle& firstHandle, const CCon
 }
 
 void CCpuMathEngine::VectorEqualValue( const CConstIntHandle& firstHandle, const CFloatHandle& resultHandle,
-	int vectorSize, const CConstIntHandle& valueHandle )
+	int vectorSize, CIntParam valueParam )
 {
 	ASSERT_EXPR( firstHandle.GetMathEngine() == this );
 	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
-	ASSERT_EXPR( valueHandle.GetMathEngine() == this );
 	CCpuExecutionScope scope;
 
 	const int* first = GetRaw( firstHandle );
@@ -736,7 +726,7 @@ void CCpuMathEngine::VectorEqualValue( const CConstIntHandle& firstHandle, const
 
 	const float32x4_t zero = vdupq_n_f32( 0 );
 	const float32x4_t one = vdupq_n_f32( 1 );
-	const int32x4_t value = vdupq_n_s32( *GetRaw( valueHandle ) );
+	const int32x4_t value = vdupq_n_s32( valueParam );
 
 	const int count = GetCount4( vectorSize );
 
@@ -767,12 +757,11 @@ static inline float32x4_t vectorELUDiffWorker(const float32x4_t& first, const fl
 }
 
 void CCpuMathEngine::VectorELUDiff(const CConstFloatHandle& firstHandle, const CConstFloatHandle& secondHandle,
-	const CFloatHandle& resultHandle, int vectorSize, const CConstFloatHandle& alphaHandle)
+	const CFloatHandle& resultHandle, int vectorSize, CFloatParam alphaParam)
 {
 	ASSERT_EXPR( firstHandle.GetMathEngine() == this );
 	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
 	ASSERT_EXPR( secondHandle.GetMathEngine() == this );
-	ASSERT_EXPR( alphaHandle.GetMathEngine() == this );
 	CCpuExecutionScope scope;
 
 	const float* first = GetRaw(firstHandle);
@@ -780,7 +769,7 @@ void CCpuMathEngine::VectorELUDiff(const CConstFloatHandle& firstHandle, const C
 	float* result = GetRaw(resultHandle);
 	int count = GetCount4(vectorSize);
 
-	float32x4_t alpha = vdupq_n_f32(*GetRaw(alphaHandle));
+	float32x4_t alpha = vdupq_n_f32(alphaParam);
 	const float32x4_t zero = vdupq_n_f32(0);
 	const CExpNeon expObj;
 
@@ -809,12 +798,11 @@ static inline float32x4_t vectorELUDiffOpWorker(const float32x4_t& first, const 
 }
 
 void CCpuMathEngine::VectorELUDiffOp(const CConstFloatHandle& firstHandle, const CConstFloatHandle& secondHandle,
-	const CFloatHandle& resultHandle, int vectorSize, const CConstFloatHandle& alphaHandle)
+	const CFloatHandle& resultHandle, int vectorSize, CFloatParam alphaParam)
 {
 	ASSERT_EXPR( firstHandle.GetMathEngine() == this );
 	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
 	ASSERT_EXPR( secondHandle.GetMathEngine() == this );
-	ASSERT_EXPR( alphaHandle.GetMathEngine() == this );
 	CCpuExecutionScope scope;
 
 	const float* first = GetRaw(firstHandle);
@@ -822,7 +810,7 @@ void CCpuMathEngine::VectorELUDiffOp(const CConstFloatHandle& firstHandle, const
 	float* result = GetRaw(resultHandle);
 	int count = GetCount4(vectorSize);
 
-	float32x4_t alpha = vdupq_n_f32(*GetRaw(alphaHandle));
+	float32x4_t alpha = vdupq_n_f32(alphaParam);
 	const float32x4_t zero = vdupq_n_f32(0);
 
 	for(int i = 0; i < count; ++i) {
@@ -856,19 +844,18 @@ static inline float32x4_t vectorReLUDiffWorkerWithThreshold(const float32x4_t& f
 }
 
 void CCpuMathEngine::VectorReLUDiff(const CConstFloatHandle& firstHandle, const CConstFloatHandle& secondHandle,
-	const CFloatHandle& resultHandle, int vectorSize, const CConstFloatHandle& upperThresholdHandle)
+	const CFloatHandle& resultHandle, int vectorSize, CFloatParam upperThresholdParam)
 {
 	ASSERT_EXPR( firstHandle.GetMathEngine() == this );
 	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
 	ASSERT_EXPR( secondHandle.GetMathEngine() == this );
-	ASSERT_EXPR( upperThresholdHandle.GetMathEngine() == this );
 	CCpuExecutionScope scope;
 
 	const float* first = GetRaw(firstHandle);
 	const float* second = GetRaw(secondHandle);
 	float* result = GetRaw(resultHandle);
 	int count = GetCount4(vectorSize);
-	float threshold = *GetRaw(upperThresholdHandle);
+	float threshold = upperThresholdParam;
 
 	const float32x4_t zero = vdupq_n_f32(0);
 
@@ -915,12 +902,11 @@ static inline float32x4_t vectorLeakyReLUDiffWorker(const float32x4_t& first, co
 }
 
 void CCpuMathEngine::VectorLeakyReLUDiff(const CConstFloatHandle& firstHandle, const CConstFloatHandle& secondHandle,
-	const CFloatHandle& resultHandle, int vectorSize, const CConstFloatHandle& alphaHandle)
+	const CFloatHandle& resultHandle, int vectorSize, CFloatParam alphaParam)
 {
 	ASSERT_EXPR( firstHandle.GetMathEngine() == this );
 	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
 	ASSERT_EXPR( secondHandle.GetMathEngine() == this );
-	ASSERT_EXPR( alphaHandle.GetMathEngine() == this );
 	CCpuExecutionScope scope;
 
 	const float* first = GetRaw(firstHandle);
@@ -928,7 +914,7 @@ void CCpuMathEngine::VectorLeakyReLUDiff(const CConstFloatHandle& firstHandle, c
 	float* result = GetRaw(resultHandle);
 	int count = GetCount4(vectorSize);
 
-	float32x4_t alpha = vdupq_n_f32(*GetRaw(alphaHandle));
+	float32x4_t alpha = vdupq_n_f32(alphaParam);
 	const float32x4_t zero = vdupq_n_f32(0);
 
 	for(int i = 0; i < count; ++i) {
@@ -1240,7 +1226,7 @@ static inline float32x4_t vectorHardSigmoidDiffWorker( const float32x4_t& first,
 }
 
 void CCpuMathEngine::VectorHardSigmoidDiff(const CConstFloatHandle& firstHandle, const CConstFloatHandle& secondHandle,
-	const CFloatHandle& resultHandle, int vectorSize, const CConstFloatHandle& slopeHandle, const CConstFloatHandle& biasHandle )
+	const CFloatHandle& resultHandle, int vectorSize, CFloatParam slope, CFloatParam bias)
 {
 	ASSERT_EXPR( firstHandle.GetMathEngine() == this );
 	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
@@ -1251,8 +1237,6 @@ void CCpuMathEngine::VectorHardSigmoidDiff(const CConstFloatHandle& firstHandle,
 	const float* second = GetRaw(secondHandle);
 	float* result = GetRaw(resultHandle);
 	int count = GetCount4(vectorSize);
-	const float slope = *GetRaw( slopeHandle );
-	const float bias = *GetRaw( biasHandle );
 
 	ASSERT_EXPR( slope != 0.f );
 
@@ -1285,7 +1269,7 @@ static inline float32x4_t vectorHardSigmoidDiffOpWorker( const float32x4_t& firs
 }
 
 void CCpuMathEngine::VectorHardSigmoidDiffOp(const CConstFloatHandle& firstHandle, const CConstFloatHandle& secondHandle,
-	const CFloatHandle& resultHandle, int vectorSize, const CConstFloatHandle& slopeHandle, const CConstFloatHandle& /*biasHandle*/ )
+	const CFloatHandle& resultHandle, int vectorSize, CFloatParam slope, CFloatParam /*bias*/ )
 {
 	ASSERT_EXPR( firstHandle.GetMathEngine() == this );
 	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
@@ -1296,7 +1280,6 @@ void CCpuMathEngine::VectorHardSigmoidDiffOp(const CConstFloatHandle& firstHandl
 	const float* second = GetRaw(secondHandle);
 	float* result = GetRaw(resultHandle);
 	int count = GetCount4(vectorSize);
-	const float slope = *GetRaw( slopeHandle );
 
 	ASSERT_EXPR( slope != 0.f );
 
@@ -1328,11 +1311,10 @@ static inline float32x4_t vectorBernulliKLDerivativeWorker(const float32x4_t& va
 }
 
 void CCpuMathEngine::VectorBernulliKLDerivative(const CConstFloatHandle& estimationHandle,
-	const CFloatHandle& resultHandle, int vectorSize, const CConstFloatHandle& targetHandle)
+	const CFloatHandle& resultHandle, int vectorSize, CFloatParam targetParam)
 {
 	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
 	ASSERT_EXPR( estimationHandle.GetMathEngine() == this );
-	ASSERT_EXPR( targetHandle.GetMathEngine() == this );
 	CCpuExecutionScope scope;
 
 	const float* first = GetRaw(estimationHandle);
@@ -1340,7 +1322,7 @@ void CCpuMathEngine::VectorBernulliKLDerivative(const CConstFloatHandle& estimat
 	int count = GetCount4(vectorSize);
 	const float MaxKLDerivative = 10;
 
-	float32x4_t target = vdupq_n_f32(*GetRaw(targetHandle));
+	float32x4_t target = vdupq_n_f32(targetParam);
 	const float32x4_t minVal = vdupq_n_f32(-MaxKLDerivative);
 	const float32x4_t maxVal = vdupq_n_f32(MaxKLDerivative);
 
@@ -1725,13 +1707,11 @@ static inline float32x4_t vectorL1DiffAddWorker(const float32x4_t& first, const 
 
 void CCpuMathEngine::VectorL1DiffAdd(const CConstFloatHandle& firstHandle, const CConstFloatHandle& secondHandle,
 	const CFloatHandle& resultHandle, int vectorSize,
-	const CConstFloatHandle& huberThresholdHandle, const CConstFloatHandle& multHandle)
+	CFloatParam huberThresholdParam, CFloatParam multParam)
 {
 	ASSERT_EXPR( firstHandle.GetMathEngine() == this );
 	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
 	ASSERT_EXPR( secondHandle.GetMathEngine() == this );
-	ASSERT_EXPR( huberThresholdHandle.GetMathEngine() == this );
-	ASSERT_EXPR( multHandle.GetMathEngine() == this );
 	CCpuExecutionScope scope;
 
 	const float* first = GetRaw(firstHandle);
@@ -1739,9 +1719,9 @@ void CCpuMathEngine::VectorL1DiffAdd(const CConstFloatHandle& firstHandle, const
 	float* result = GetRaw(resultHandle);
 	int count = GetCount4(vectorSize);
 
-	float32x4_t huberThreshold = vdupq_n_f32(*GetRaw(huberThresholdHandle));
+	float32x4_t huberThreshold = vdupq_n_f32(huberThresholdParam);
 	float32x4_t negHuberThreshold = vnegq_f32(huberThreshold);
-	float32x4_t mult = vdupq_n_f32(*GetRaw(multHandle));
+	float32x4_t mult = vdupq_n_f32(multParam);
 
 	for(int i = 0; i < count; ++i) {
 		float32x4_t res = vectorL1DiffAddWorker(LoadNeon4(first), LoadNeon4(second),

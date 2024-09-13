@@ -1,4 +1,4 @@
-/* Copyright © 2023 ABBYY
+/* Copyright © 2023-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -21,20 +21,15 @@ limitations under the License.
 namespace NeoML {
 
 CGrnLayer::CGrnLayer( IMathEngine& mathEngine ) :
-	CBaseLayer( mathEngine, "CGrnLayer", false ),
-	epsilon( mathEngine ),
-	invChannels( mathEngine ),
-	one( mathEngine )
+	CBaseLayer( mathEngine, "CGrnLayer", /*isLearnable*/false )
 {
 	paramBlobs.SetSize( PN_Count );
-	epsilon.SetValue( 1e-6f ); // default value from the article
-	one.SetValue( 1.f );
 }
 
 void CGrnLayer::SetEpsilon( float newEpsilon )
 {
 	NeoAssert( newEpsilon > 0 );
-	epsilon.SetValue( newEpsilon );
+	epsilon = newEpsilon;
 }
 
 void CGrnLayer::Serialize( CArchive& archive )
@@ -42,13 +37,7 @@ void CGrnLayer::Serialize( CArchive& archive )
 	archive.SerializeVersion( 0 );
 	CBaseLayer::Serialize( archive );
 
-	float epsilonValue = archive.IsStoring() ? GetEpsilon() : 0.f;
-
-	archive.Serialize( epsilonValue );
-	
-	if( archive.IsLoading() ) {
-		SetEpsilon( epsilonValue );
-	}
+	archive.Serialize( epsilon );
 }
 
 void CGrnLayer::Reshape()
@@ -67,7 +56,7 @@ void CGrnLayer::Reshape()
 		bias()->Clear();
 	}
 
-	invChannels.SetValue( 1.f / inputDescs[0].Channels() );
+	invChannels = ( 1.f / inputDescs[0].Channels() );
 
 	inputDescs.CopyTo( outputDescs );
 }
@@ -84,8 +73,7 @@ void CGrnLayer::RunOnce()
 	CConstFloatHandle inputData = inputBlobs[0]->GetData();
 	CFloatHandle outputData = outputBlobs[0]->GetData();
 
-	CFloatHandleStackVar buff( MathEngine(), objectCount + objectCount * channels );
-	CFloatHandle batchBuff = buff.GetHandle();
+	CFloatHandleStackVar batchBuff( MathEngine(), objectCount + objectCount * channels );
 	CFloatHandle batchChannelBuff = batchBuff + objectCount;
 
 	// Calculate L2
@@ -112,7 +100,7 @@ void CGrnLayer::RunOnce()
 		MathEngine().VectorMultiply( batchChannelBuff, batchChannelBuff, channels, batchBuff );
 		MathEngine().VectorEltwiseMultiply( batchChannelBuff, scale()->GetData(), batchChannelBuff, channels );
 	}
-	MathEngine().VectorAddValue( batchChannelBuff, batchChannelBuff, objectCount * channels, one );
+	MathEngine().VectorAddValue( batchChannelBuff, batchChannelBuff, objectCount * channels, 1.0f );
 
 	MathEngine().BatchMultiplyMatrixByDiagMatrix( objectCount, inputData, geometry, channels, objectSize,
 		batchChannelBuff, channels, outputData, objectCount * objectSize );

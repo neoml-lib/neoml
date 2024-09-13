@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -21,19 +21,17 @@ limitations under the License.
 
 namespace NeoML {
 
-static const float MaxGradientValue = 1e+6;
+static const float lossDefaultMaxGradientValue = 1e+6;
 
 // The base loss function layer
 // Can have 2 to 3 inputs: #0 - the network response, #1 - the correct result, #2 - vector weights (optional)
 CLossLayer::CLossLayer( IMathEngine& mathEngine, const char* name, bool trainLabels ) :
-	CBaseLayer( mathEngine, name, false ),
-	trainLabels( trainLabels ),
-	params( CDnnBlob::CreateVector( mathEngine, CT_Float, P_Count ) )
+	CBaseLayer( mathEngine, name, /*isLearnable*/false ),
+	lossParam( CDnnBlob::CreateVector( mathEngine, CT_Float, 1 ) ),
+	trainLabels( trainLabels )
 {
-	params->GetData().SetValueAt( P_LossWeight, 1 );
-	params->GetData().SetValueAt( P_Loss, 0 );
-	params->GetData().SetValueAt( P_MinGradient, -MaxGradientValue );
-	params->GetData().SetValueAt( P_MaxGradient, MaxGradientValue );
+	lossParam->GetData().SetValue( 0 );
+	SetMaxGradientValue( lossDefaultMaxGradientValue );
 }
 
 void CLossLayer::SetTrainLabels( bool toSet )
@@ -48,8 +46,8 @@ void CLossLayer::SetMaxGradientValue(float maxValue)
 {
 	NeoAssert(maxValue > 0);
 
-	params->GetData().SetValueAt( P_MinGradient, -maxValue );
-	params->GetData().SetValueAt( P_MaxGradient, maxValue );
+	minGradient = -maxValue;
+	maxGradient = maxValue;
 }
 
 void CLossLayer::Reshape()
@@ -66,12 +64,9 @@ void CLossLayer::Reshape()
 			"weights batch width doesn't match result batch width" );
 	}
 
-	params->GetData().SetValueAt( P_LossDivider, 1.f / inputDescs[0].ObjectCount() );
-	MathEngine().VectorEltwiseMultiply( params->GetData( {P_LossDivider} ), params->GetData( {P_LossWeight} ),
-		params->GetData( {P_LossGradientDivider} ), 1 );
-
-	resultBuffer = 0;
-	weights = 0;
+	lossDivider = ( 1.f / inputDescs[0].ObjectCount() );
+	resultBuffer = nullptr;
+	weights = nullptr;
 
 	lossGradientBlobs.DeleteAll();
 	if( IsBackwardPerformed() ) {
@@ -85,24 +80,28 @@ void CLossLayer::Reshape()
 	}
 }
 
-static const int LossLayerVersion = 2000;
+static constexpr int lossLayerVersion = 2001;
 
 void CLossLayer::Serialize( CArchive& archive )
 {
-	archive.SerializeVersion( LossLayerVersion, CDnn::ArchiveMinSupportedVersion );
+	const int version = archive.SerializeVersion( lossLayerVersion, CDnn::ArchiveMinSupportedVersion );
 	CBaseLayer::Serialize(archive);
 
-	if( archive.IsStoring() ) {
-		archive << GetLossWeight();
-	} else if( archive.IsLoading() ) {
-		float tmp;
-		archive >> tmp;
-		SetLossWeight(tmp);
-		params->GetData().SetValueAt( P_Loss, 0 );
-		weights = 0;
-		resultBuffer = 0;
+	archive.Serialize( lossWeight );
+	if( version >= 2001 ) {
+		archive.Serialize( maxGradient );
+		archive.Serialize( trainLabels );
 	} else {
-		NeoAssert( false );
+		maxGradient = lossDefaultMaxGradientValue;
+		trainLabels = false;
+	}
+
+	if( archive.IsLoading() ) {
+		lossParam->GetData().SetValue( 0 );
+		weights = nullptr;
+		resultBuffer = nullptr;
+		lossDivider = 0.f;
+		SetMaxGradientValue( maxGradient );
 	}
 }
 
@@ -126,7 +125,7 @@ void CLossLayer::RunOnce()
 {
 	// Set the weights
 	if(inputBlobs.Size() <= 2) {
-		if(weights == 0) {
+		if(weights == nullptr) {
 			weights = CDnnBlob::CreateListBlob(MathEngine(), CT_Float, inputBlobs[0]->GetBatchLength(), 
 				inputBlobs[0]->GetBatchWidth(), inputBlobs[0]->GetListSize(), 1);
 			weights->Fill(1);
@@ -136,14 +135,15 @@ void CLossLayer::RunOnce()
 		weights = inputBlobs[2];
 	}
 	// Calculate the loss value
-	if(resultBuffer == 0) {
+	if(resultBuffer == nullptr) {
 		resultBuffer = CDnnBlob::CreateListBlob(MathEngine(), CT_Float, inputBlobs[0]->GetBatchLength(), 
 			inputBlobs[0]->GetBatchWidth(), inputBlobs[0]->GetListSize(), 1);
 	}
-	CFloatHandle dataLossGradient, labelLossGradient;
+	CFloatHandle dataLossGradient;
 	if(lossGradientBlobs.Size() > 0) {
 		dataLossGradient = lossGradientBlobs[0]->GetData();
 	}
+	CFloatHandle labelLossGradient;
 	if(lossGradientBlobs.Size() > 1) {
 		labelLossGradient = lossGradientBlobs[1]->GetData();
 	}
@@ -169,24 +169,26 @@ void CLossLayer::RunOnce()
 	}
 	// Take weights into account
 	MathEngine().VectorDotProduct(weights->GetData(), resultBuffer->GetData(),
-		resultBuffer->GetObjectCount(), params->GetData( { P_Loss } ) );
-	MathEngine().VectorMultiply( params->GetData( { P_Loss } ), params->GetData( { P_Loss } ),
-		1, params->GetData( { P_LossDivider } ) );
+		resultBuffer->GetObjectCount(), lossParam->GetData() );
+	MathEngine().VectorMultiply( lossParam->GetData(), lossParam->GetData(), 1, lossDivider );
 }
 
 void CLossLayer::BackwardOnce()
 {
+	// Averaging factor for calculating the loss gradient, takes lossWeight into account
+	const float lossGradientDivider = lossDivider * lossWeight;
+
 	for(int i = 0; i < lossGradientBlobs.Size(); i++) {
 		// Take weights into account
 		MathEngine().MultiplyDiagMatrixByMatrix( weights->GetData(), weights->GetDataSize(),
 			lossGradientBlobs[i]->GetData(), inputDiffBlobs[i]->GetObjectSize(),
 			inputDiffBlobs[i]->GetData(), inputDiffBlobs[i]->GetDataSize() );
 		MathEngine().VectorMultiply( inputDiffBlobs[i]->GetData(), inputDiffBlobs[i]->GetData(),
-			inputDiffBlobs[i]->GetDataSize(), params->GetData( { P_LossGradientDivider } ) );
+			inputDiffBlobs[i]->GetDataSize(), lossGradientDivider );
 		// The gradients might take "huge" values that will lead to incorrect behaviour
 		// Cut these values down
 		MathEngine().VectorMinMax( inputDiffBlobs[i]->GetData(), inputDiffBlobs[i]->GetData(),
-			inputDiffBlobs[i]->GetDataSize(), params->GetData( { P_MinGradient } ), params->GetData( { P_MaxGradient } ) );
+			inputDiffBlobs[i]->GetDataSize(), minGradient, maxGradient );
 	}
 }
 
@@ -235,13 +237,13 @@ float CLossLayer::testImpl(int batchSize, CConstFloatHandle data, int vectorSize
 }
 
 float CLossLayer::Test(int batchSize, CConstFloatHandle data, int vectorSize, CConstFloatHandle label, int labelSize,
-	CConstFloatHandle dataDelta)
+	const CConstFloatHandle& dataDelta)
 {
 	return testImpl(batchSize, data, vectorSize, label, labelSize, dataDelta);
 }
 
 float CLossLayer::Test(int batchSize, CConstFloatHandle data, int vectorSize, CConstIntHandle label, int labelSize,
-	CConstFloatHandle dataDelta)
+	const CConstFloatHandle& dataDelta)
 {
 	return testImpl(batchSize, data, vectorSize, label, labelSize, dataDelta);
 }

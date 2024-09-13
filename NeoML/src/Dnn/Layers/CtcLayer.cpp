@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -13,43 +13,32 @@ See the License for the specific language governing permissions and
 limitations under the License.
 --------------------------------------------------------------------------------------------------------------*/
 
-// Based on Alex Graves, "Supervised Sequence Labelling with Recurrent Neural Networks", chapter 7.
-
 #include <common.h>
 #pragma hdrstop
 
 #include <NeoML/Dnn/Layers/CtcLayer.h>
 #include <float.h>
 
+// Based on Alex Graves, "Supervised Sequence Labelling with Recurrent Neural Networks", chapter 7.
+
 namespace NeoML {
 
-static const float MaxGradientValue = 1e+6;
-
-////////////////////////////////////////////////////////////////////////////////////////
-// CCtcLossLayer
+static constexpr float ctcLossMaxGradientValue = 1e+6;
 
 CCtcLossLayer::CCtcLossLayer( IMathEngine& mathEngine ) :
-	CBaseLayer( mathEngine, "CCnnCtcLossLayer", false ),
-	lossWeight( CDnnBlob::CreateVector( mathEngine, CT_Float, 1 ) ),
-	loss( CDnnBlob::CreateVector( mathEngine, CT_Float, 1 ) ),
-	lossGradientDivider( CDnnBlob::CreateVector( mathEngine, CT_Float, 1 ) ),
-	minGradient( CDnnBlob::CreateVector( mathEngine, CT_Float, 1 ) ),
-	maxGradient( CDnnBlob::CreateVector( mathEngine, CT_Float, 1 ) ),
-	blankLabel( 0 ),
-	allowBlankLabelSkip( false )
+	CBaseLayer( mathEngine, "CCnnCtcLossLayer", /*isLearnable*/false ),
+	loss( CDnnBlob::CreateVector( mathEngine, CT_Float, 1 ) )
 {
-	SetLossWeight(1.);
 	loss->GetData().SetValue( 0 );
-	minGradient->GetData().SetValue( -MaxGradientValue );
-	maxGradient->GetData().SetValue( MaxGradientValue );
+	SetMaxGradientValue( ctcLossMaxGradientValue );
 }
 
 void CCtcLossLayer::SetMaxGradientValue(float maxValue)
 {
 	NeoAssert(maxValue > 0);
 
-	minGradient->GetData().SetValue(-maxValue);
-	maxGradient->GetData().SetValue(maxValue);
+	minGradient = (-maxValue);
+	maxGradient = (maxValue);
 }
 
 void CCtcLossLayer::Reshape()
@@ -94,12 +83,8 @@ void CCtcLossLayer::Reshape()
 			"weight's batchLength and objectSize must have be equal to 1" );
 	}
 
-	lossGradient = 0;
-
-	CFloatHandleStackVar tempLossDivider( MathEngine() );
-	tempLossDivider.SetValue( 1.f / inputDescs[I_Result].BatchWidth() );
-	MathEngine().VectorEltwiseMultiply( tempLossDivider.GetHandle(), lossWeight->GetData(),
-		lossGradientDivider->GetData(), 1 );
+	lossGradient = nullptr;
+	lossDivider = ( 1.f / inputDescs[I_Result].BatchWidth() );
 }
 
 void CCtcLossLayer::RunOnce()
@@ -119,6 +104,8 @@ void CCtcLossLayer::RunOnce()
 
 void CCtcLossLayer::BackwardOnce()
 {
+	// Averaging factor for calculating the loss gradient, taking lossWeight into account
+	const float lossGradientDivider = lossDivider * lossWeight;
 	// Take weights into account
 	if( inputBlobs.Size() > I_LabelWeights ) {
 		MathEngine().Multiply1DiagMatrixByMatrix( lossGradient->GetBatchLength(), inputBlobs[I_LabelWeights]->GetData(),
@@ -126,49 +113,39 @@ void CCtcLossLayer::BackwardOnce()
 			inputDiffBlobs[I_Result]->GetData(), inputDiffBlobs[I_Result]->GetDataSize() );
 		MathEngine().VectorMultiply( inputDiffBlobs[I_Result]->GetData(),
 			inputDiffBlobs[I_Result]->GetData(), inputDiffBlobs[I_Result]->GetDataSize(),
-			lossGradientDivider->GetData() );
+			lossGradientDivider );
 	} else {
 		MathEngine().VectorMultiply( lossGradient->GetData(), inputDiffBlobs[I_Result]->GetData(),
-			inputDiffBlobs[I_Result]->GetDataSize(), lossGradientDivider->GetData() );
+			inputDiffBlobs[I_Result]->GetDataSize(), lossGradientDivider );
 	}
 	// In case of "huge" gradients the system behavior may be incorrect,
 	// so cut these values down
 	MathEngine().VectorMinMax(inputDiffBlobs[I_Result]->GetData(), 
 		inputDiffBlobs[I_Result]->GetData(), inputDiffBlobs[I_Result]->GetDataSize(), 
-		minGradient->GetData(), maxGradient->GetData());
+		minGradient, maxGradient);
 }
 
-static const int CtcLossLayerVersion = 2000;
+static constexpr int ctcLossLayerVersion = 2000;
 
 void CCtcLossLayer::Serialize( CArchive& archive )
 {
-	archive.SerializeVersion( CtcLossLayerVersion, CDnn::ArchiveMinSupportedVersion );
+	archive.SerializeVersion( ctcLossLayerVersion, CDnn::ArchiveMinSupportedVersion );
 	CBaseLayer::Serialize( archive );
 
-	if( archive.IsStoring() ) {
-		archive << GetLossWeight();
-		archive << maxGradient->GetData().GetValue();
-		archive << blankLabel;
-		archive << allowBlankLabelSkip;
-	} else if( archive.IsLoading() ) {
-		float tmp;
-		archive >> tmp;
-		SetLossWeight(tmp);
-		float maxGradientValue = MaxGradientValue;
-		archive >> maxGradientValue;
-		minGradient->GetData().SetValue( -maxGradientValue );
-		maxGradient->GetData().SetValue( maxGradientValue );
+	archive.Serialize( lossWeight );
+	float maxGradientValue = GetMaxGradientValue();
+	archive.Serialize( maxGradientValue );
+	archive.Serialize( blankLabel );
+	archive.Serialize( allowBlankLabelSkip );
+	
+	if( archive.IsLoading() ) {
+		SetMaxGradientValue( maxGradientValue );
 		loss->GetData().SetValue( 0 );
-		archive >> blankLabel;
-		archive >> allowBlankLabelSkip;
 		ForceReshape();
-	} else {
-		NeoAssert( false );
 	}
 }
 
-CLayerWrapper<CCtcLossLayer> CtcLoss( int blankLabel, bool allowBlankLabelSkip,
-	float lossWeight )
+CLayerWrapper<CCtcLossLayer> CtcLoss( int blankLabel, bool allowBlankLabelSkip, float lossWeight )
 {
 	return CLayerWrapper<CCtcLossLayer>( "CtcLoss", [=]( CCtcLossLayer* result ) {
 		result->SetBlankLabel( blankLabel );
@@ -177,8 +154,7 @@ CLayerWrapper<CCtcLossLayer> CtcLoss( int blankLabel, bool allowBlankLabelSkip,
 	} );
 }
 
-///////////////////////////////////////////////////////////////////////////////////
-// CCtcDecodingLayer
+//---------------------------------------------------------------------------------------------------------------------
 
 CCtcDecodingLayer::CCtcDecodingLayer( IMathEngine& mathEngine ) :
 	CBaseLayer( mathEngine, "CCnnCtcDecodingLayer", false ),

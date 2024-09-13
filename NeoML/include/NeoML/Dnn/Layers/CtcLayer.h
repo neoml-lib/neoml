@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -59,8 +59,8 @@ public:
 	void SetBlankLabel(int _blankLabel) { blankLabel = _blankLabel; }
 
 	// Total loss weight
-	float GetLossWeight() const { return lossWeight->GetData().GetValue(); }
-	void SetLossWeight(float _lossWeight) { lossWeight->GetData().SetValue(_lossWeight); }
+	float GetLossWeight() const { return lossWeight; }
+	void SetLossWeight(float _lossWeight) { lossWeight = _lossWeight; }
 
 	// Gets the last loss value
 	float GetLastLoss() const { return loss->GetData().GetValue(); }
@@ -68,7 +68,7 @@ public:
 	// The maximum loss gradient value
 	// The system may not function as intended with very large loss gradient,
 	// so we don't recommend changing this value
-	float GetMaxGradientValue() const { return maxGradient->GetData().GetValue(); }
+	float GetMaxGradientValue() const { return maxGradient; }
 	void SetMaxGradientValue(float maxValue);
 
 	// Indicates if the blank labels may be skipped when aligning
@@ -84,26 +84,23 @@ protected:
 	int BlobsForBackward() const override { return TInputBlobs; }
 
 private:
-	CPtr<CDnnBlob> lossWeight; // scale multiplier for the loss function
-	CPtr<CDnnBlob> loss; // the loss value on the last tep
-	CPtr<CDnnBlob> lossGradientDivider; // the averaging factor for calculating the loss gradient (taking lossWeight into account)
-
-	CPtr<CDnnBlob> minGradient;
-	CPtr<CDnnBlob> maxGradient;
-
-	int blankLabel; // the blank label
-	
+	CPtr<CDnnBlob> loss; // the loss value on the last step
 	CPtr<CDnnBlob> lossGradient; // loss function gradient { InputLength, BW, Classes }
 
-	bool allowBlankLabelSkip; // indicates if blanks between different labels may be skipped
+	float lossWeight = 1.f; // scale multiplier for the loss function
+	float lossDivider = 0.f;
+	float minGradient = 0.f;
+	float maxGradient = 0.f;
+	int blankLabel = 0; // the blank label
+	bool allowBlankLabelSkip = false; // indicates if blanks between different labels may be skipped
 };
 
 NEOML_API CLayerWrapper<CCtcLossLayer> CtcLoss( int blankLabel, bool allowBlankLabelSkip,
 	float lossWeight = 1.0f );
 
-///////////////////////////////////////////////////////////////////////////////////
-// The layer that builds a linear division graph (LDG) on the sequence recognition results
+//---------------------------------------------------------------------------------------------------------------------
 
+// The layer that builds a linear division graph (LDG) on the sequence recognition results
 struct CCtcGLDArc {
 public:
 	const int Begin;
@@ -118,6 +115,8 @@ public:
 	int FinalCoord() const { return End; }
 	Quality ArcQuality() const { return LogProb; }
 };
+
+//---------------------------------------------------------------------------------------------------------------------
 
 class NEOML_API CCtcDecodingLayer : public CBaseLayer {
 	NEOML_DNN_LAYER( CCtcDecodingLayer )

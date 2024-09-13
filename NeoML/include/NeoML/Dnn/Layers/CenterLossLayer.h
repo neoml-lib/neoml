@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -27,7 +27,7 @@ namespace NeoML {
 class NEOML_API CCenterLossLayer : public CLossLayer {
 	NEOML_DNN_LAYER( CCenterLossLayer )
 public:
-	explicit CCenterLossLayer( IMathEngine& mathEngine );
+	explicit CCenterLossLayer( IMathEngine& mathEngine ) : CLossLayer( mathEngine, "CCnnCenterLossLayer" ) {}
 
 	void Serialize( CArchive& archive ) override;
 
@@ -39,18 +39,17 @@ public:
 	// The rate of centers convergence - the multiplier used for calculating 
 	// the moving mean of the class centers for each subsequent batch
 	// In the paper referred to the multiplier is called alpha
-	float GetClassCentersConvergenceRate() const
-		{ return classCentersConvergenceRate->GetData().GetValue(); }
+	float GetClassCentersConvergenceRate() const { return classCentersConvergenceRate; }
 	void SetClassCentersConvergenceRate( float _classCentersConvergenceRate )
-		{ classCentersConvergenceRate->GetData().SetValue( _classCentersConvergenceRate ); }
+		{ classCentersConvergenceRate = ( _classCentersConvergenceRate ); }
 
 	// Gets the blob containing the class centers. Available only after the network ran at least once.
 	// The resulting blob has only two dimensions larger than 1: BatchWidth and ChannelsCount;
 	// BatchWidth corresponds to classes, ChannelsCount to features
 	// Therefore it contains numberOfClasses vectors, each of the length equal to the number of features used by the layer
-	CPtr<const CDnnBlob> GetClassCenters() { return classCentersBlob.Ptr(); }
+	CPtr<const CDnnBlob> GetClassCenters() const { return classCentersBlob.Ptr(); }
 	// Checks if the class centers blob is already filled in
-	bool HasClassCenters() { return classCentersBlob != 0; }
+	bool HasClassCenters() const { return classCentersBlob != 0; }
 
 protected:
 	void Reshape() override;
@@ -59,15 +58,13 @@ protected:
 
 private:
 	// The number of classes
-	int numberOfClasses;
+	int numberOfClasses = 0;
 	// The centers convergence rate
-	CPtr<CDnnBlob> classCentersConvergenceRate;
-	// The unit multiplier
-	CPtr<CDnnBlob> oneMult;
+	float classCentersConvergenceRate = 0;
 	// The internal blobs
 	CPtr<CDnnBlob> classCentersBlob;
 
-	void updateCenters(const CFloatHandle& tempDiffHandle);
+	void updateCenters( const CConstFloatHandle& tempDiff );
 };
 
 NEOML_API CLayerWrapper<CCenterLossLayer> CenterLoss( int numberOfClasses,

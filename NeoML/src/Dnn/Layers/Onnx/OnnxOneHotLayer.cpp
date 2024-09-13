@@ -1,4 +1,4 @@
-/* Copyright © 2017-2023 ABBYY Production LLC
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -30,13 +30,11 @@ void onnxOneHotShiftAndScale( const CDnnBlob& valuesBlob, CDnnBlob& outputBlob )
 	const T onValue = values.GetValueAt( 1 );
 	CTypedMemoryHandle<T> output = outputBlob.GetData<T>();
 	if( onValue - offValue != 1 ) {
-		CMemoryHandleVar<T> scale( mathEngine );
-		scale.SetValue( onValue - offValue );
+		const T scale = ( onValue - offValue );
 		mathEngine.VectorMultiply( output, output, outputBlob.GetDataSize(), scale );
 	}
 	if( offValue != 0 ) {
-		CMemoryHandleVar<T> shift( mathEngine );
-		shift.SetValue( offValue );
+		const T shift = ( offValue );
 		mathEngine.VectorAddValue( output, output, outputBlob.GetDataSize(), shift );
 	}
 }
