@@ -51,8 +51,10 @@ void CMemoryEngineMixin::SetReuseMemoryMode( bool enable )
 	case MET_Metal:
 	case MET_Vulkan:
 	{
-		std::lock_guard<std::mutex> lock( Mutex );
-		MemoryPool->SetReuseMemoryMode( enable );
+		if( enable != GetReuseMemoryMode() ) {
+			std::lock_guard<std::mutex> lock( Mutex );
+			MemoryPool->SetReuseMemoryMode( enable );
+		}
 		break;
 	}
 	default:

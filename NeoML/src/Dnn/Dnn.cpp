@@ -416,7 +416,7 @@ CDnn::CDnn( CRandom& _random, IMathEngine& _mathEngine, const CCompositeLayer* o
 	currentSequencePos( 0 ),
 	isReverseSequense( false ),
 	autoRestartMode( true ),
-	isReuseMemoryMode( false )
+	isReuseMemoryMode( mathEngine.GetReuseMemoryMode() )
 {
 	solver = FINE_DEBUG_NEW CDnnSimpleGradientSolver( mathEngine );
 	initializer = FINE_DEBUG_NEW CDnnXavierInitializer( random );
@@ -648,7 +648,7 @@ void CDnn::RunOnce()
 		reshape(); // rebuild the network if necessary
 
 		// During inference we turning reuseMemoryMode on when the net is big enough
-		isReuseMemoryMode = ( getOutputBlobsSize() > MinReuseMemoryModeNetSize );
+		isReuseMemoryMode = mathEngine.GetReuseMemoryMode() || ( getOutputBlobsSize() > MinReuseMemoryModeNetSize );
 		runOnce( 0 );
 #ifdef NEOML_USE_FINEOBJ
 	} catch( CCheckException* exception ) {
