@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -21,7 +21,7 @@ limitations under the License.
 
 namespace NeoML {
 
-static const float MaxGradientValue = 1e+6;
+static const float lossDefaultMaxGradientValue = 1e+6;
 
 // The base loss function layer
 // Can have 2 to 3 inputs: #0 - the network response, #1 - the correct result, #2 - vector weights (optional)
@@ -32,8 +32,7 @@ CLossLayer::CLossLayer( IMathEngine& mathEngine, const char* name, bool trainLab
 {
 	params->GetData().SetValueAt( P_LossWeight, 1 );
 	params->GetData().SetValueAt( P_Loss, 0 );
-	params->GetData().SetValueAt( P_MinGradient, -MaxGradientValue );
-	params->GetData().SetValueAt( P_MaxGradient, MaxGradientValue );
+	SetMaxGradientValue( lossDefaultMaxGradientValue );
 }
 
 void CLossLayer::SetTrainLabels( bool toSet )
@@ -70,8 +69,8 @@ void CLossLayer::Reshape()
 	MathEngine().VectorEltwiseMultiply( params->GetData( {P_LossDivider} ), params->GetData( {P_LossWeight} ),
 		params->GetData( {P_LossGradientDivider} ), 1 );
 
-	resultBuffer = 0;
-	weights = 0;
+	resultBuffer = nullptr;
+	weights = nullptr;
 
 	lossGradientBlobs.DeleteAll();
 	if( IsBackwardPerformed() ) {
@@ -126,7 +125,7 @@ void CLossLayer::RunOnce()
 {
 	// Set the weights
 	if(inputBlobs.Size() <= 2) {
-		if(weights == 0) {
+		if(weights == nullptr) {
 			weights = CDnnBlob::CreateListBlob(MathEngine(), CT_Float, inputBlobs[0]->GetBatchLength(), 
 				inputBlobs[0]->GetBatchWidth(), inputBlobs[0]->GetListSize(), 1);
 			weights->Fill(1);
@@ -136,14 +135,15 @@ void CLossLayer::RunOnce()
 		weights = inputBlobs[2];
 	}
 	// Calculate the loss value
-	if(resultBuffer == 0) {
+	if(resultBuffer == nullptr) {
 		resultBuffer = CDnnBlob::CreateListBlob(MathEngine(), CT_Float, inputBlobs[0]->GetBatchLength(), 
 			inputBlobs[0]->GetBatchWidth(), inputBlobs[0]->GetListSize(), 1);
 	}
-	CFloatHandle dataLossGradient, labelLossGradient;
+	CFloatHandle dataLossGradient;
 	if(lossGradientBlobs.Size() > 0) {
 		dataLossGradient = lossGradientBlobs[0]->GetData();
 	}
+	CFloatHandle labelLossGradient;
 	if(lossGradientBlobs.Size() > 1) {
 		labelLossGradient = lossGradientBlobs[1]->GetData();
 	}
@@ -246,8 +246,8 @@ float CLossLayer::Test(int batchSize, CConstFloatHandle data, int vectorSize, CC
 	return testImpl(batchSize, data, vectorSize, label, labelSize, dataDelta);
 }
 
-float CLossLayer::TestRandom(CRandom& random, int batchSize, float dataLabelMin, float dataLabelMax, float deltaAbsMax,
-	int vectorSize)
+float CLossLayer::TestRandom( CRandom& random, int batchSize, float dataLabelMin, float dataLabelMax, float deltaAbsMax,
+	int vectorSize, bool oneHot )
 {
 	NeoAssert( batchSize > 0 && vectorSize > 0 );
 	NeoAssert( dataLabelMin < dataLabelMax && deltaAbsMax > 0 );
@@ -267,8 +267,13 @@ float CLossLayer::TestRandom(CRandom& random, int batchSize, float dataLabelMin,
 		}
 		MathEngine().DataExchangeTyped(data, buf.GetPtr(), totalSize);
 
-		for( int i = 0; i < totalSize; ++i ) {
-			buf[i] = static_cast<float>( random.Uniform(dataLabelMin, dataLabelMax) );
+		for( int i = 0; i < ( oneHot ? batchSize : totalSize ); ++i ) {
+			if( oneHot ) {
+				::memset( &buf[i * vectorSize], 0, sizeof( float ) * vectorSize );
+				buf[i * vectorSize + random.UniformInt( 0, vectorSize - 1 )] = 1;
+			} else {
+				buf[i] = static_cast<float>( random.Uniform( dataLabelMin, dataLabelMax ) );
+			}
 		}
 		MathEngine().DataExchangeTyped(label, buf.GetPtr(), totalSize);
 

@@ -20,6 +20,7 @@ target_sources(${PROJECT_NAME} INTERFACE
     ${CMAKE_CURRENT_SOURCE_DIR}/DnnLambSolverTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/DnnLayersSerializationTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/DnnLoraTest.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/DnnLossLayerTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/DnnMobileNetV2BlockTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/DnnMobileNetV3BlockTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/DnnOnnxLayerTest.cpp
