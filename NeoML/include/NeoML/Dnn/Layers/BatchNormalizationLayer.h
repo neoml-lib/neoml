@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -25,6 +25,14 @@ namespace NeoML {
 class NEOML_API CBatchNormalizationLayer : public CBaseLayer {
 	NEOML_DNN_LAYER( CBatchNormalizationLayer )
 public:
+	// The training parameters names
+	enum TParamName {
+		PN_Gamma,
+		PN_Beta,
+
+		PN_Count
+	};
+
 	explicit CBatchNormalizationLayer( IMathEngine& mathEngine );
 
 	void Serialize( CArchive& archive ) override;
@@ -36,21 +44,21 @@ public:
 	// If true, "channel-based" statistics is gathered, that is, the data for each channel is averaged across the other dimensions
 	// If false, the statistics is averaged across the batch (BatchLength * BatchWidth * ListSize dimensions)
 	bool IsChannelBased() const { return isChannelBased; }
-	void SetChannelBased(bool _isChannelBased);
+	void SetChannelBased( bool _isChannelBased );
 
 	// Convergence rate for slow statistics (gathered across several batches)
 	// This value may be from (0; 1] interval
 	// The smaller this value, the more statistics takes previous data into account (~ 1 / rate)
 	float GetSlowConvergenceRate() const { return slowConvergenceRate->GetData().GetValue(); }
-	void SetSlowConvergenceRate(float rate);
+	void SetSlowConvergenceRate( float rate );
 
 	// The final normalization parameters
 	CPtr<CDnnBlob> GetFinalParams() { updateFinalParams(); return finalParams == 0 ? 0 : finalParams->GetCopy(); }
-	void SetFinalParams(const CPtr<CDnnBlob>& _params);
+	void SetFinalParams( const CPtr<CDnnBlob>& _params );
 
 	// Indicates if the free term should be set to zero ("no bias")
 	bool IsZeroFreeTerm() const { return isZeroFreeTerm; }
-	void SetZeroFreeTerm(bool _isZeroFreeTerm) { isZeroFreeTerm  = _isZeroFreeTerm; }
+	void SetZeroFreeTerm( bool _isZeroFreeTerm ) { isZeroFreeTerm = _isZeroFreeTerm; }
 
 	// Indicates if the final params weights should be used for initialization
 	// After initialization the value will be reset to false automatically
@@ -67,29 +75,6 @@ protected:
 	int BlobsForLearn() const override { return 0; }
 
 private:
-	bool isChannelBased;
-	bool isZeroFreeTerm; // indicates if the free term is zero
-	CPtr<CDnnBlob> slowConvergenceRate; // the convergence rate for slow statistics
-	CPtr<CDnnBlob> finalParams; // the final linear operation parameters (gamma, beta)
-
-	// The variables used to calculate statistics
-	CPtr<CDnnBlob> varianceEpsilon;
-	CPtr<CDnnBlob> fullBatchInv;
-	CPtr<CDnnBlob> varianceNorm;
-	CPtr<CDnnBlob> residual;
-
-	CPtr<CDnnBlob> normalized;
-
-	CPtr<CDnnBlob> varianceMult;
-
-	// The training parameters names
-	enum TParamName {
-		PN_Gamma = 0,		// gamma
-		PN_Beta,			// beta
-
-		PN_Count,
-	};
-
 	// Internal (untrainable) parameters
 	enum TInternalParamName {
 		IPN_Average = 0,		// the average across the batch
@@ -98,28 +83,39 @@ private:
 		IPN_SlowAverage,		// the average across several batches
 		IPN_SlowVariance,		// the variance estimate across several batches
 
-		IPN_Count,
+		IPN_Count
 	};
+
+	CPtr<CDnnBlob> finalParams; // the final linear operation parameters (gamma, beta)
 	CPtr<CDnnBlob> internalParams;
+	CPtr<CDnnBlob> normalized;
 
-	bool useFinalParamsForInitialization; // indicates if final params should be used for initialization
+	CPtr<CDnnBlob> slowConvergenceRate; // the convergence rate for slow statistics
+	// The variables used to calculate statistics
+	CPtr<CDnnBlob> varianceEpsilon;
+	CPtr<CDnnBlob> fullBatchInv;
+	CPtr<CDnnBlob> varianceNorm;
+	CPtr<CDnnBlob> residual;
+	CPtr<CDnnBlob> varianceMult;
 
-	bool checkAndCreateParams();
-	void getFullBatchAndObjectSize(int& fullBatchSize, int& objectSize);
+	bool isChannelBased = true;
+	bool isZeroFreeTerm = false; // indicates if the free term is zero
+	bool isFinalParamDirty = false; // indicates if final params need updating
+	bool useFinalParamsForInitialization = false; // indicates if final params should be used for initialization
+
+	bool checkAndCreateParams( const CFloatHandle& temp );
+	void getFullBatchAndObjectSize( int& fullBatchSize, int& objectSize );
 	void runWhenLearning();
 	void runWhenNoLearning();
-	void processInput(const CPtr<CDnnBlob>& inputBlob, const CPtr<CDnnBlob>& paramBlob);
+	void processInput( const CPtr<CDnnBlob>& inputBlob, const CPtr<CDnnBlob>& paramBlob );
 	void calculateAverage();
-	void calculateVariance();
+	void calculateVariance( const CFloatHandle& temp );
 	void calculateNormalized();
-	void updateSlowParams(bool isInit);
+	void updateSlowParams( bool isInit );
 	void backwardWhenLearning();
 	void backwardWhenNoLearning();
-
-	bool isFinalParamDirty; // indicates if final params need updating
 	void updateFinalParams();
-
-	void initializeFromFinalParams();
+	void initializeFromFinalParams( const CFloatHandle& ones );
 };
 
 NEOML_API CLayerWrapper<CBatchNormalizationLayer> BatchNormalization(
