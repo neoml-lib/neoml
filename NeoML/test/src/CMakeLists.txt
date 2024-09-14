@@ -13,6 +13,7 @@ target_sources(${PROJECT_NAME} INTERFACE
     ${CMAKE_CURRENT_SOURCE_DIR}/DnnCtcTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/DnnDistributedTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/DnnDropoutTest.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/DnnFocalLossTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/DnnLambSolverTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/DnnLayersSerializationTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/DnnLoraTest.cpp
