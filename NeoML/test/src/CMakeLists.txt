@@ -11,6 +11,7 @@ target_sources(${PROJECT_NAME} INTERFACE
     ${CMAKE_CURRENT_SOURCE_DIR}/DnnBatchNormFusionTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/DnnBlobTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/DnnChannelwiseWith1x1BlockTest.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/DnnConfusionMatrixLayer.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/DnnCtcTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/DnnDistributedTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/DnnDropoutTest.cpp
