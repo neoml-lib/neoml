@@ -51,42 +51,16 @@ inline T CTypedMemoryHandle<T>::GetValue() const
 	return *value;
 }
 
-//------------------------------------------------------------------------------------------------------------
+//---------------------------------------------------------------------------------------------------------------------
+
 // CMemoryHandleVar is a variable or fixed-size array for a math engine
 
 template<class T>
-inline void CMemoryHandleVarBase<T>::SetValueAt( int index, T value )
-{
-	Data.SetValueAt( index, value );
-}
-
-template<class T>
-inline T CMemoryHandleVarBase<T>::GetValueAt( int index ) const
-{
-	return Data.GetValueAt( index );
-}
-
-template<class T>
-inline void CMemoryHandleVarBase<T>::SetValue( T value )
-{
-	Data.SetValue( value );
-}
-
-template<class T>
-inline T CMemoryHandleVarBase<T>::GetValue() const
-{
-	return Data.GetValue();
-}
-
-//------------------------------------------------------------------------------------------------------------
-// A variable or array
-
-template<class T>
 inline CMemoryHandleVar<T>::CMemoryHandleVar( IMathEngine& mathEngine, size_t size ) :
-	CMemoryHandleVarBase<T>( mathEngine, size )
+	CMemoryHandleVarBase<T>( size )
 {
 	if( size != 0 ) {
-		CMemoryHandleVarBase<T>::Data = CMemoryHandleVarBase<T>::MathEngine.template HeapAllocTyped<T>( size );
+		CMemoryHandleVarBase<T>::Data = mathEngine.template HeapAllocTyped<T>( size );
 	}
 }
 
@@ -94,19 +68,18 @@ template<class T>
 inline CMemoryHandleVar<T>::~CMemoryHandleVar()
 {
 	if( !CMemoryHandleVarBase<T>::Data.IsNull() ) {
-		CMemoryHandleVarBase<T>::MathEngine.HeapFree( CMemoryHandleVarBase<T>::Data );
+		CMemoryHandleVarBase<T>::Data.GetMathEngine()->HeapFree( CMemoryHandleVarBase<T>::Data );
 	}
 }
 
-//------------------------------------------------------------------------------------------------------------
+//---------------------------------------------------------------------------------------------------------------------
 
 template<class T>
 inline CMemoryHandleStackVar<T>::CMemoryHandleStackVar( IMathEngine& mathEngine, size_t size ) :
-	CMemoryHandleVarBase<T>( mathEngine, size )
+	CMemoryHandleVarBase<T>( size )
 {
 	if( size != 0 ) {
-		CMemoryHandleVarBase<T>::Data =
-			CTypedMemoryHandle<T>( CMemoryHandleVarBase<T>::MathEngine.StackAlloc( size * sizeof( T ) ) );
+		CMemoryHandleVarBase<T>::Data = CTypedMemoryHandle<T>( mathEngine.StackAlloc( size * sizeof( T ) ) );
 	}
 }
 
@@ -114,7 +87,7 @@ template<class T>
 inline CMemoryHandleStackVar<T>::~CMemoryHandleStackVar()
 {
 	if( !CMemoryHandleVarBase<T>::Data.IsNull() ) {
-		CMemoryHandleVarBase<T>::MathEngine.StackFree( CMemoryHandleVarBase<T>::Data );
+		CMemoryHandleVarBase<T>::Data.GetMathEngine()->StackFree( CMemoryHandleVarBase<T>::Data );
 	}
 }
 

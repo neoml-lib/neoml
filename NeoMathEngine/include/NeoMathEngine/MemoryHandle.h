@@ -25,12 +25,13 @@ class IMathEngine;
 class CMemoryHandleInternal;
 
 // Wraps the pointer to memory allocated by a math engine
+// IMPORTANT: Do not use pointers to CMemoryHandle for children classes with fields, because of the non virtual dtor.
 class NEOMATHENGINE_API CMemoryHandle {
 public:
 	constexpr CMemoryHandle() = default;
 	// Be copied and moved by default
 	
-	bool operator!=( const CMemoryHandle& other ) const { return !operator==( other ); }
+	bool operator!=( const CMemoryHandle& other ) const { return !( *this == other ); }
 	bool operator==( const CMemoryHandle& other ) const
 		{ return MathEngine == other.MathEngine && Object == other.Object && Offset == other.Offset; }
 
@@ -54,6 +55,7 @@ protected:
 //---------------------------------------------------------------------------------------------------------------------
 
 // Wraps the typed pointer to memory allocated by a math engine
+// IMPORTANT: Do not use pointers to CMemoryHandle for children classes with fields, because of the non virtual dtor.
 template <class T>
 class CTypedMemoryHandle : public CMemoryHandle {
 public:
@@ -130,37 +132,43 @@ public:
 //---------------------------------------------------------------------------------------------------------------------
 
 // CMemoryHandleVar is a variable or a fixed-size array for a math engine
+// IMPORTANT: Do not use pointers to CMemoryHandleVarBase for children with fields, because of the non virtual dtor.
 template<class T>
 class CMemoryHandleVarBase {
 public:
-	void SetValueAt( int index, T value );
-	T GetValueAt( int index ) const;
-	void SetValue( T value );
-	T GetValue() const;
+	// Moveable only
+	CMemoryHandleVarBase( CMemoryHandleVarBase&& other ) : Data( other.Data ), DataSize( other.DataSize )
+		{ other.Data = CTypedMemoryHandle<T>{}; } // nullify to avoid double free
+	CMemoryHandleVarBase& operator=( CMemoryHandleVarBase&& other )
+		{ if( this != &other ) { std::swap( *this, other ); } return *this; }
+
+	void SetValueAt( int index, T value ) { Data.SetValueAt( index, value ); }
+	T GetValueAt( int index ) const { return Data.GetValueAt( index ); }
+	void SetValue( T value ) { Data.SetValue( value ); }
+	T GetValue() const { return Data.GetValue(); }
 
 	const CTypedMemoryHandle<T>& GetHandle() const { return Data; }
 
 	// Operators for easier use
-	operator const CTypedMemoryHandle<T>&( ) const { return GetHandle(); }
+	operator const CTypedMemoryHandle<T>&() const { return GetHandle(); }
 	operator CTypedMemoryHandle<const T>() const { return GetHandle(); }
 	CTypedMemoryHandle<T> operator []( int index ) const { return GetHandle() + index; }
 
 	bool operator==( const CTypedMemoryHandle<const T>& other ) const { return GetHandle() == other; }
-	bool operator!=( const CTypedMemoryHandle<const T>& other ) const { return GetHandle() != other; }
+	bool operator!=( const CTypedMemoryHandle<const T>& other ) const { return !( *this == other ); }
 
 	CTypedMemoryHandle<T> operator+( ptrdiff_t shift ) const { return GetHandle() + shift; }
 	CTypedMemoryHandle<T> operator-( ptrdiff_t shift ) const { return GetHandle() - shift; }
 	int operator-( const CTypedMemoryHandle<T>& handle ) const { return GetHandle() - handle; }
 
 	int Size() const { return static_cast<int>( DataSize ); }
-	IMathEngine* GetMathEngine() const { return &MathEngine; }
+	IMathEngine* GetMathEngine() const { return Data.GetMathEngine(); }
 
 protected:
-	IMathEngine& MathEngine; // the math engine owner
-	mutable CTypedMemoryHandle<T> Data; // the typed memory handler
+	CTypedMemoryHandle<T> Data; // the typed memory handler
 	const size_t DataSize; // the typed memory size
 
-	CMemoryHandleVarBase( IMathEngine& mathEngine, size_t size ) : MathEngine( mathEngine ), DataSize( size ) {}
+	explicit CMemoryHandleVarBase( size_t size ) : DataSize( size ) {}
 	~CMemoryHandleVarBase() = default;
 
 private:
@@ -171,7 +179,7 @@ private:
 
 //---------------------------------------------------------------------------------------------------------------------
 
-// A variable or an array
+// A variable or an array on the heap
 template<class T>
 class CMemoryHandleVar : public CMemoryHandleVarBase<T> {
 public:
