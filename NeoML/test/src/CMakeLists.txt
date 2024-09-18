@@ -7,6 +7,7 @@ target_sources(${PROJECT_NAME} INTERFACE
     ${CMAKE_CURRENT_SOURCE_DIR}/BpeTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/ClassificationAndRegressionTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/ClusteringTest.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/DnnBatchNormalizationTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/DnnBatchNormFusionTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/DnnBlobTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/DnnChannelwiseWith1x1BlockTest.cpp
