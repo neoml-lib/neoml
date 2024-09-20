@@ -206,17 +206,17 @@ void SerializeLayer( CArchive& archive, IMathEngine& mathEngine, CPtr<CBaseLayer
 {
 	if( archive.IsStoring() ) {
 		CString name = getLayerClass( layer );
-		NeoAssert( layer == nullptr || name != "" ); // assertion on storing not registered layer
+		NeoAssertMsg( layer == nullptr || name != "", "Try to store non-registered layer" );
 		archive << name;
-		if( layer != 0 ) {
+		if( layer != nullptr ) {
 			layer->Serialize( archive );
 		}
 	} else if( archive.IsLoading() ) {
 		CString name;
 		archive >> name;
 		layer = createLayer( mathEngine, name );
-		CheckArchitecture( name == "" || layer != nullptr, name, "restoring unknown layer from archive" );
-		if( layer != 0 ) {
+		CheckArchitecture( name == "" || layer != nullptr, name, "Try to restore unknown layer from archive" );
+		if( layer != nullptr ) {
 			layer->Serialize( archive );
 		}
 	} else {
@@ -401,25 +401,13 @@ REGISTER_NEOML_LAYER( CWhereLayer, "NeoMLDnnWhereLayer" )
 
 //---------------------------------------------------------------------------------------------------------
 
-CDnn::CDnn( CRandom& _random, IMathEngine& _mathEngine, const CCompositeLayer* owner ) :
-	owner( owner ),
-	log( 0 ),
-	logFrequency( 100 ),
+CDnn::CDnn( CRandom& _random, IMathEngine& _mathEngine, const CCompositeLayer* _owner ) :
 	random( _random ),
 	mathEngine( _mathEngine ),
-	runNumber( -1 ),
-	isRebuildNeeded( false ),
-	isBackwardPerformed( false ),
-	isLearningEnabled( true ),
-	isRecurrentMode( false ),
-	maxSequenceLength( 1 ),
-	currentSequencePos( 0 ),
-	isReverseSequense( false ),
-	autoRestartMode( true ),
-	isReuseMemoryMode( false )
+	solver( FINE_DEBUG_NEW CDnnSimpleGradientSolver( mathEngine ) ),
+	initializer( FINE_DEBUG_NEW CDnnXavierInitializer( random ) ),
+	owner( _owner )
 {
-	solver = FINE_DEBUG_NEW CDnnSimpleGradientSolver( mathEngine );
-	initializer = FINE_DEBUG_NEW CDnnXavierInitializer( random );
 }
 
 CDnn::~CDnn()
@@ -817,24 +805,24 @@ void CDnn::FilterLayersParams( const CArray<const char*>& layers, float threshol
 	}
 }
 
-static const int DnnVersion = 2000;
+static constexpr int dnnVersion = 2000;
 
 void CDnn::Serialize( CArchive& archive )
 {
 	NeoAssertMsg( !IsReferenceDnn(), "For ReferenceDnn serializing is restricted" );
-	if( archive.IsStoring() ) {
-		archive << DnnVersion;
-		archive << logFrequency;
 
-		archive << layers.Size();
-		for( int i = 0; i < layers.Size(); ++i ) {
-			archive << getLayerClass( layers[i] );
-			if( layers[i] != 0 ) {
-				layers[i]->Serialize( archive );
-			}
+	int version = dnnVersion;
+	archive.Serialize( version );
+
+	if( archive.IsLoading() ) {
+		// Calculate the data
+		if( version < 0 ) {
+			version = -version;
 		}
-		archive << isLearningEnabled;
-	} else if( archive.IsLoading() ) {
+		if( version < CDnn::ArchiveMinSupportedVersion || version > dnnVersion ) {
+			check( false, ERR_BAD_ARCHIVE_VERSION, archive.Name() );
+		}
+
 		// Clean up the network
 		while( layers.Size() > 0 ) {
 			DeleteLayer( *layers[0] );
@@ -842,35 +830,28 @@ void CDnn::Serialize( CArchive& archive )
 		runNumber = 0;
 		isRebuildNeeded = false;
 		isBackwardPerformed = false;
+	}
 
-		// Calculate the data
-		int version;
-		archive >> version;
-		if( version < 0 ) {
-			version = -version;
+	archive.Serialize( logFrequency );
+
+	int layersSize = layers.Size();
+	archive.Serialize( layersSize );
+	for( int i = 0; i < layersSize; ++i ) {
+		CPtr<CBaseLayer> layer;
+		if( archive.IsStoring() ) {
+			layer = layers[i];
 		}
-
-		if( version < CDnn::ArchiveMinSupportedVersion || version > DnnVersion ) {
-			check( false, ERR_BAD_ARCHIVE_VERSION, archive.Name() );
-		}
-
-		archive >> logFrequency;
-
-		int layerCount;
-		archive >> layerCount;
-		for( int i = 0; i < layerCount; ++i ) {
-			CString className;
-			archive >> className;
-			CPtr<CBaseLayer> layer = createLayer( GetMathEngine(), className );
-			check( layer != 0, ERR_BAD_ARCHIVE, archive.Name() );
-			layer->Serialize( archive );
+		SerializeLayer( archive, mathEngine, layer );
+		if( archive.IsLoading() ) {
 			AddLayer( *layer );
 		}
-		archive >> isLearningEnabled;
+	}
+
+	archive.Serialize( isLearningEnabled );
+
+	if( archive.IsLoading() ) {
 		// In order to avoid the CDnnSolver::Reset for the next solver
 		rebuild();
-	} else {
-		NeoAssert( false );
 	}
 }
 

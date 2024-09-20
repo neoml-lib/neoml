@@ -30,22 +30,7 @@ static const size_t MaxMemoryInPools = 192 * 1024 * 1024;
 CBaseLayer::CBaseLayer( IMathEngine& _mathEngine, const char* _name, bool _isLearnable ) :
 	mathEngine( _mathEngine ),
 	name( _name ),
-	dnn( 0 ),
-	isLearnable( _isLearnable ),
-	isLearningEnabled( true ),
-	baseLearningRate( 1 ),
-	baseL2RegularizationMult( 1 ),
-	baseL1RegularizationMult( 1 ),
-	isBackwardNeeded( BS_Unknown ),
-	isBackwardForced( false ),
-	forcedReshape( true ),
-	isReshapeNeeded( true ),
-	lastRunNumber( 0 ),
-	graphCount( 0 ),
-	useTimer( false ),
-	runOnceCount( 0 ),
-	runOnceTime( 0 ),
-	isInPlace( false )
+	isLearnable( _isLearnable )
 {
 }
 
@@ -789,49 +774,38 @@ void CBaseLayer::InitializeParamBlob(int input, CDnnBlob& blob, int inputCount)
 	GetDnn()->GetInitializer()->InitializeLayerParams(blob, inputCount);
 }
 
-static const int BaseLayerVersion = 2000;
+static constexpr int baseLayerVersion = 2000;
 
 void CBaseLayer::Serialize( CArchive& archive )
 {
-	archive.SerializeVersion(BaseLayerVersion, CDnn::ArchiveMinSupportedVersion);
-	if( archive.IsStoring() ) {
-		archive << name;
-		archive << inputs.Size();
-		for(int i = 0; i < inputs.Size(); ++i) {
-			archive << inputs[i].Name;
-			archive << inputs[i].OutputNumber;
-		}
-		archive << isBackwardForced;
-		archive << isLearningEnabled;
-		archive << baseLearningRate << baseL2RegularizationMult << baseL1RegularizationMult;
+	archive.SerializeVersion( baseLayerVersion, CDnn::ArchiveMinSupportedVersion );
 
-		const bool nonReferenceDnnLayer = ( GetDnn() == nullptr || !GetDnn()->IsReferenceDnn() );
-		if( nonReferenceDnnLayer ) {
-			SerializeBlobs( mathEngine, archive, paramBlobs );
-		} else { // Reference dnns will point to original dnn paramBlobs
-			CObjectArray<CDnnBlob> emptyParamBlobs;
-			emptyParamBlobs.SetSize( paramBlobs.Size() );
-			SerializeBlobs( mathEngine, archive, emptyParamBlobs );
-		}
-	} else if( archive.IsLoading() ) {
-		if( dnn != 0 ) {
-			unlink();
-		}
-		archive >> name;
-		int inputCount;
-		archive >> inputCount;
-		inputs.SetSize( inputCount );
-		for(int i = 0; i < inputCount; ++i) {
-			archive >> inputs[i].Name;
-			archive >> inputs[i].OutputNumber;
-		}
-		archive >> isBackwardForced;
-		archive >> isLearningEnabled;
-		archive >> baseLearningRate >> baseL2RegularizationMult >> baseL1RegularizationMult;
+	if( archive.IsLoading() && dnn != nullptr ) {
+		unlink();
+	}
+	archive.Serialize( name );
 
+	int inputsSize = inputs.Size();
+	archive.Serialize( inputsSize );
+	inputs.SetSize( inputsSize );
+	for( int i = 0; i < inputs.Size(); ++i ) {
+		archive.Serialize( inputs[i].Name );
+		archive.Serialize( inputs[i].OutputNumber );
+	}
+
+	archive.Serialize( isBackwardForced );
+	archive.Serialize( isLearningEnabled );
+	archive.Serialize( baseLearningRate );
+	archive.Serialize( baseL2RegularizationMult );
+	archive.Serialize( baseL1RegularizationMult );
+
+	const bool nonReferenceDnnLayer = ( archive.IsLoading() || GetDnn() == nullptr || !GetDnn()->IsReferenceDnn() );
+	if( nonReferenceDnnLayer ) {
 		SerializeBlobs( mathEngine, archive, paramBlobs );
-	} else {
-		NeoAssert( false );
+	} else { // Reference dnns will point to original dnn paramBlobs
+		CObjectArray<CDnnBlob> emptyParamBlobs;
+		emptyParamBlobs.SetSize( paramBlobs.Size() );
+		SerializeBlobs( mathEngine, archive, emptyParamBlobs );
 	}
 }
 
