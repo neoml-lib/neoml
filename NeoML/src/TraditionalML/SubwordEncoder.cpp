@@ -104,6 +104,11 @@ bool ISubwordEncoderWithCache::CCache::Request( const CString& word,
 void ISubwordEncoderWithCache::CCache::Add( const CString& word,
 	const CArray<int>& tokenIds, const CArray<int>& tokenLengths )
 {
+	// If cache is disabled
+	if( cachePeriod == NotFound ) {
+		return;
+	}
+
 	NeoAssert( !wordCache.Has( word ) );
 	NeoAssert( tokenIds.Size() == tokenLengths.Size() );
 
