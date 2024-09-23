@@ -142,7 +142,7 @@ private:
 class NEOML_API CCrossEntropyLossLayer : public CLossLayer {
 	NEOML_DNN_LAYER( CCrossEntropyLossLayer )
 public:
-	explicit CCrossEntropyLossLayer( IMathEngine& mathEngine );
+	explicit CCrossEntropyLossLayer( IMathEngine& mathEngine ) : CLossLayer( mathEngine, "CCnnCrossEntropyLossLayer" ) {}
 
 	// Indicates if softmax function should be applied to input data. True by default.
 	// If you turn off the flag, make sure each vector you pass to the input contains only positive numbers making 1 in total.
@@ -160,7 +160,7 @@ protected:
 		int labelSize, CFloatHandle lossValue, CFloatHandle lossGradient) override;
 
 private:
-	bool isSoftmaxApplied;
+	bool isSoftmaxApplied = true;
 };
 
 NEOML_API CLayerWrapper<CCrossEntropyLossLayer> CrossEntropyLoss(
