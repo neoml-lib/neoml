@@ -174,12 +174,13 @@ NEOML_API CLayerWrapper<CCrossEntropyLossLayer> CrossEntropyLoss(
 class NEOML_API CBinaryCrossEntropyLossLayer : public CLossLayer {
 	NEOML_DNN_LAYER( CBinaryCrossEntropyLossLayer )
 public:
-	explicit CBinaryCrossEntropyLossLayer( IMathEngine& mathEngine );
+	explicit CBinaryCrossEntropyLossLayer( IMathEngine& mathEngine ) :
+		CLossLayer( mathEngine, "CCnnBinaryCrossEntropyLossLayer" ) {}
 
 	// The weight for the positive side of the sigmoid
 	// Values over 1 increase recall, values below 1 increase precision
-	void SetPositiveWeight( float value );
-	float GetPositiveWeight() const;
+	void SetPositiveWeight( float value ) { positiveWeightMinusOne = value - 1; }
+	float GetPositiveWeight() const { return positiveWeightMinusOne + 1; }
 
 	void Serialize( CArchive& archive ) override;
 
@@ -191,9 +192,9 @@ protected:
 
 private:
 	// constants used for calculating the function value
-	float positiveWeightMinusOneValue;
+	float positiveWeightMinusOne = 0;
 
-	void calculateStableSigmoid( const CConstFloatHandle& firstHandle, const CFloatHandle& resultHandle, int vectorSize ) const;
+	void calculateStableSigmoid( const CFloatHandle& firstHandle, const CFloatHandle& resultHandle, int vectorSize ) const;
 };
 
 NEOML_API CLayerWrapper<CBinaryCrossEntropyLossLayer> BinaryCrossEntropyLoss(
