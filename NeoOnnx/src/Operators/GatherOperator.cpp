@@ -16,8 +16,6 @@ limitations under the License.
 #include "../common.h"
 #pragma hdrstop
 
-#include <algorithm>
-
 #include "GatherOperator.h"
 #include "NeoOnnxCheck.h"
 
@@ -57,7 +55,7 @@ void CGatherOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorA
 	CPtr<const CTensorBase> data = inputs[0];
 	CTensorLayout dataLayout;
 	for( int i = 0; i < data->DimCount(); ++i ) {
-		dataLayout.Add( static_cast<TBlobDim>( std::max( 0, indices->DimCount() - 1 ) + i ) );
+		dataLayout.Add( static_cast<TBlobDim>( max( 0, indices->DimCount() - 1 ) + i ) );
 	}
 	if( axis != 0 ) {
 		std::swap( dataLayout[0], dataLayout[axis] );

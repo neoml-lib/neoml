@@ -27,12 +27,16 @@ if(NOT pybind11_POPULATED)
 endif()
 
 # Build NeoML
-set(NeoML_INSTALL OFF CACHE BOOL "" FORCE)
-set(NeoML_BUILD_TESTS OFF CACHE BOOL "" FORCE)
-set(NeoOnnx_BUILD ON CACHE BOOL "" FORCE)
-if(LINUX)
-    set(NeoOnnx_BUILD_SHARED OFF CACHE BOOL "" FORCE)
+set(NeoML_INSTALL         OFF  CACHE  BOOL  ""  FORCE)
+set(NeoML_BUILD_TESTS     OFF  CACHE  BOOL  ""  FORCE)
+set(NeoML_BUILD_SHARED    OFF  CACHE  BOOL  ""  FORCE)
+set(NeoOnnx_BUILD         ON   CACHE  BOOL  ""  FORCE)
+set(NeoOnnx_BUILD_SHARED  OFF  CACHE  BOOL  ""  FORCE)
+
+if(MSVC) # static linking the standard library
+    set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 endif()
+
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/.. ${CMAKE_BINARY_DIR}/NeoML)
 
 # Build python module
