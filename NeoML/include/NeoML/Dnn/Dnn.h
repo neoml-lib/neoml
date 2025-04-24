@@ -125,8 +125,8 @@ struct CDnnLayerLink final {
 
 //------------------------------------------------------------------------------------------------------------
 
-// CBaseLayer is the base class for all layers with which the network can function. 
-// Each layer has a string name that should be unique in the network. Each layer may have 
+// CBaseLayer is the base class for all layers with which the network can function.
+// Each layer has a string name that should be unique in the network. Each layer may have
 // one or several inputs and one or several outputs.
 class NEOML_API CBaseLayer : public virtual IObject {
 public:
@@ -138,7 +138,7 @@ public:
 	// The current network (described by a CDnn class) to which the layer belongs
 	// While a layer is connected to a network, you may not change its basic configuration,
 	// such as its name, the list of inputs, the size of a convolution window, etc.
-	// While a layer belongs to a network, only the settings like input blob size 
+	// While a layer belongs to a network, only the settings like input blob size
 	// or function coefficients (for example, during training) may be changed
 	const CDnn* GetDnn() const { return dnn; }
 	CDnn* GetDnn() { return dnn; }
@@ -181,7 +181,7 @@ public:
 	void EnableLearning();
 	bool IsLearningEnabled() const { return isLearningEnabled; }
 
-	// Base learning rate (the learning strategy may change 
+	// Base learning rate (the learning strategy may change
 	// the relative learning rates inside the network, but the base rate stays the same)
 	float GetBaseLearningRate() const { return baseLearningRate; }
 	void SetBaseLearningRate( float rate ) { baseLearningRate = rate; }
@@ -198,11 +198,11 @@ public:
 
 	// Begins processing a new sequence
 	// The method is overloaded for the composite layer and the backward link layer
-	virtual void RestartSequence() {} 
+	virtual void RestartSequence() {}
 
 	void Serialize(CArchive& archive) override;
 
-	// Indicates that backpropagation should be performed for the layer 
+	// Indicates that backpropagation should be performed for the layer
 	// even if there are no trainable layers before it
 	bool GetBackwardForced() const { return isBackwardForced; }
 	void SetBackwardForced(bool forced);
@@ -432,6 +432,7 @@ private:
 	void reshape();
 	void setInputDesc(int i);
 	void runOnce();
+	bool mayFreeIoBlobs() const;
 	void recheckBackwardNeeded();
 	void backwardRunAndLearnOnce();
 	void transferDiffBlob( CDnnBlob* diffBlob, int outputNum );
