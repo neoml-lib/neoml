@@ -1,4 +1,4 @@
-/* Copyright © 2017-2023 ABBYY
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -1254,24 +1254,7 @@ void CCpuMathEngine::VectorEltwiseDivide(const CConstFloatHandle& firstHandle,
 	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
 	CCpuExecutionScope scope;
 
-	const float* first = GetRaw(firstHandle);
-	const float* second = GetRaw(secondHandle);
-	float* result = GetRaw(resultHandle);
-
-	int sseSize;
-	int nonSseSize;
-	checkSse(vectorSize, sseSize, nonSseSize);
-
-	for(int i = 0; i < sseSize; ++i) {
-		_mm_storeu_ps(result, _mm_div_ps(_mm_loadu_ps(first), _mm_loadu_ps(second)));
-		first += 4;
-		second += 4;
-		result += 4;
-	}
-
-	for(int i = 0; i < nonSseSize; ++i) {
-		*result++ = *first++ / *second++;
-	}
+	vectorEltwiseDivide( GetRaw( firstHandle ), GetRaw( secondHandle ), GetRaw( resultHandle ), vectorSize );
 }
 
 void CCpuMathEngine::VectorEltwisePower(const CConstFloatHandle& firstHandle,

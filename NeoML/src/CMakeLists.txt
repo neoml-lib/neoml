@@ -119,6 +119,7 @@ set(NeoML_SOURCES
     Dnn/Layers/DotProductLayer.cpp
     Dnn/Layers/EnumBinarizationLayer.cpp
     Dnn/Layers/FocalLossLayer.cpp
+    Dnn/Layers/FavorAttentionPerformerLayer.cpp
     Dnn/Layers/FullyConnectedSourceLayer.cpp
     Dnn/Layers/GlobalMaxPoolingLayer.cpp
     Dnn/Layers/GlobalSumPoolingLayer.cpp
@@ -134,6 +135,7 @@ set(NeoML_SOURCES
     Dnn/Layers/MaxOverTimePoolingLayer.cpp
     Dnn/Layers/MobileNetV3BlockLayer.cpp
     Dnn/Layers/ModelWrapperLayer.cpp
+    Dnn/Layers/MultiheadAttentionPerformerLayer.cpp
     Dnn/Layers/ObjectNormalizationLayer.cpp
     Dnn/Layers/Onnx/OnnxEltwiseLayer.cpp
     Dnn/Layers/Onnx/OnnxCastLayer.cpp
@@ -380,6 +382,7 @@ set(NeoML_HEADERS
     ../include/NeoML/Dnn/Layers/DotProductLayer.h
     ../include/NeoML/Dnn/Layers/EnumBinarizationLayer.h
     ../include/NeoML/Dnn/Layers/FocalLossLayer.h
+    ../include/NeoML/Dnn/Layers/FavorAttentionPerformerLayer.h
     ../include/NeoML/Dnn/Layers/FullyConnectedSourceLayer.h
     ../include/NeoML/Dnn/Layers/GlobalMaxPoolingLayer.h
     ../include/NeoML/Dnn/Layers/GlobalSumPoolingLayer.h
@@ -395,6 +398,7 @@ set(NeoML_HEADERS
     ../include/NeoML/Dnn/Layers/MaxOverTimePoolingLayer.h
     ../include/NeoML/Dnn/Layers/MobileNetV3BlockLayer.h
     ../include/NeoML/Dnn/Layers/ModelWrapperLayer.h
+    ../include/NeoML/Dnn/Layers/MultiheadAttentionPerformerLayer.h
     ../include/NeoML/Dnn/Layers/MultiHingeLossLayer.h
     ../include/NeoML/Dnn/Layers/ObjectNormalizationLayer.h
     ../include/NeoML/Dnn/Layers/Onnx/OnnxEltwiseLayer.h
