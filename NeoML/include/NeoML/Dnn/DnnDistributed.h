@@ -117,10 +117,12 @@ private:
 	CPointerArray<CRandom> rands;
 	// Separate dnn for each thread
 	CPointerArray<CDnn> cnns;
+	// Indicates for what dnns the inference was performed
+	CArray<bool> isDnnInferenced;
 	// Separate `batchSize` for each dnn (may be empty) in a thread
 	CArray<int> batchSize;
 	// `Train()` cannot be called if it `isFirstRun`
-	// `batchSize` may not be equal 0, if it `isFirstRun` for `RunOnce`, `RunAndBackwardOnce` or `RunAndLearnOnce`.
+	// `batchSize` may not be equal 0, if it `isFirstRun` for `RunAndBackwardOnce` or `RunAndLearnOnce`.
 	bool isFirstRun = true;
 	// Containers for errors if it happened
 	CArray<CString> errorMessages;
