@@ -31,10 +31,10 @@ static void subVectorFromMatrixColumnsTestImpl( const CTestParams& params, int s
 
 	CREATE_FILL_FLOAT_ARRAY( getMatrix, valuesInterval.Begin, valuesInterval.End, height * width, random )
 	CREATE_FILL_FLOAT_ARRAY( vector, valuesInterval.Begin, valuesInterval.End, height, random )
-	std::vector<float> expectedMatrix;
-	expectedMatrix = getMatrix;
+	std::vector<float> expectedMatrix = getMatrix; // copy vector
 
-	MathEngine().SubVectorFromMatrixColumns( CARRAY_FLOAT_WRAPPER( expectedMatrix ), CARRAY_FLOAT_WRAPPER( getMatrix ), height, width, CARRAY_FLOAT_WRAPPER( vector ) );
+	MathEngine().SubVectorFromMatrixColumns( CARRAY_FLOAT_WRAPPER( expectedMatrix ),
+		CARRAY_FLOAT_WRAPPER( getMatrix ), height, width, CARRAY_FLOAT_WRAPPER( vector ) );
 
 	for( int h = 0; h < height; ++h ) {
 		for( int w = 0; w < width; ++w ) {
@@ -46,7 +46,6 @@ static void subVectorFromMatrixColumnsTestImpl( const CTestParams& params, int s
 		EXPECT_NEAR( expectedMatrix[i], getMatrix[i], 1e-3 );
 	}
 }
-
 
 //---------------------------------------------------------------------------------------------------------------------
 

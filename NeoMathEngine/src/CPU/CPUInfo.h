@@ -1,4 +1,4 @@
-/* Copyright © 2017-2023 ABBYY
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -21,15 +21,22 @@ limitations under the License.
 #include <cpuid.h>
 #elif FINE_PLATFORM( FINE_WINDOWS )
 #include <intrin.h>
-#endif
+#endif // FINE_PLATFORM
 
-#endif // !FINE_ARCHITECTURE( FINE_ARM64 )
+#endif // !FINE_ARCHITECTURE( ARM )
 
 #include <cstring>
 
+#if FINE_ARCHITECTURE( FINE_X64 )
+// Intel X86/X64 optimization manual
+// https://github.com/intel/optimization-manual/tree/main/chap18/ex25
+int Avx512FmaUnitCount();
+#else   // !x64
+inline int Avx512FmaUnitCount() { return 0; }
+#endif  // !x64
 
 // The structure with CPU information
-struct CCPUInfo {
+struct CCPUInfo final {
 	enum class TCpuArch {
 		Intel,
 		AMD,
@@ -117,7 +124,7 @@ struct CCPUInfo {
 	{
 #ifdef NEOML_USE_NEON
 		return 4;
-#else
+#else // !NEOML_USE_NEON
 		int floatAlignment = 4; // SSE alignment
 
 		Regs regs;
@@ -138,15 +145,20 @@ struct CCPUInfo {
 			}
 #elif FINE_PLATFORM(FINE_LINUX) || FINE_PLATFORM(FINE_DARWIN) || FINE_PLATFORM(FINE_ANDROID) || FINE_PLATFORM(FINE_IOS)
 			floatAlignment = 8;
-#else
+#else  // ERROR FINE_PLATFORM
 #error "Platform isn't supported!"
-#endif
+#endif // ERROR FINE_PLATFORM
+		}
+		if( HasAvx512And2Fma ) {
+			floatAlignment = 16;
 		}
 
 		return floatAlignment;
-#endif // NEOML_USE_NEON
+#endif // !NEOML_USE_NEON
 	}
 
+	static const bool NEOMATHENGINE_API HasAvx512;
+	static const bool HasAvx512And2Fma;
 	static const bool HasAvxAndFma;
 	static const bool IsNotIntel;
 
@@ -184,9 +196,9 @@ private:
 
 #if FINE_PLATFORM(FINE_WINDOWS)
 	typedef int RegType;
-#else
+#else  // !FINE_WINDOWS
 	typedef unsigned int RegType;
-#endif
+#endif // !FINE_WINDOWS
 	struct Regs {
 		RegType eax;
 		RegType ebx;
@@ -201,12 +213,12 @@ private:
 		__cpuid( ( RegType* )( &outRegs ), eax );
 #elif FINE_PLATFORM( FINE_LINUX ) || FINE_PLATFORM( FINE_DARWIN )
 		__get_cpuid( eax, &outRegs.eax, &outRegs.ebx, &outRegs.ecx, &outRegs.edx );
-#else
+#else  // ERROR FINE_PLATFORM
 	( void ) eax;
-#endif
-#else
+#endif // ERROR FINE_PLATFORM
+#else  // ERROR FINE_ARCHITECTURE
 	( void ) eax;
-#endif // !FINE_ARCHITECTURE( FINE_ARM64 )
+#endif // ERROR FINE_ARCHITECTURE
 	}
 
 	static void callCpuIdEx( Regs& outRegs, const RegType& eax, const RegType& ecx ) {
@@ -216,14 +228,14 @@ private:
 		__cpuidex((RegType*)( &outRegs ), eax, ecx );
 #elif FINE_PLATFORM( FINE_LINUX ) || FINE_PLATFORM( FINE_DARWIN )
 		__cpuid_count( eax, ecx, outRegs.eax, outRegs.ebx, outRegs.ecx, outRegs.edx );
-#else
+#else  // ERROR FINE_PLATFORM
 	( void ) eax;
 	( void ) ecx;
-#endif
-#else
+#endif // ERROR FINE_PLATFORM
+#else  // ERROR FINE_ARCHITECTURE
 	( void ) eax;
 	( void ) ecx;
-#endif // !FINE_ARCHITECTURE( FINE_ARM64 )
+#endif // ERROR FINE_ARCHITECTURE
 	}
 
 };
