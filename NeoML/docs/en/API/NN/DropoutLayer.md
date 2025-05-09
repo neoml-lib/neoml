@@ -55,8 +55,8 @@ The layer has no trainable parameters.
 
 ## Inputs
 
-The single input accepts a data blob of arbitrary size.
+Each input accepts a data blob of arbitrary size.
 
 ## Outputs
 
-The single output returns a blob of the same size with some of the elements set to `0`. Note that this will happen only during training; when you are running the network without training no elements are dropped out.
+Each output returns a blob of corresponding input's size with some of the elements set to `0`. Note that this will happen only during training; when you are running the network without training no elements are dropped out.
