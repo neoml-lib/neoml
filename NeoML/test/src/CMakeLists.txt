@@ -7,20 +7,27 @@ target_sources(${PROJECT_NAME} INTERFACE
     ${CMAKE_CURRENT_SOURCE_DIR}/BpeTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/ClassificationAndRegressionTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/ClusteringTest.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/DnnBatchNormalizationTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/DnnBatchNormFusionTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/DnnBlobTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/DnnChannelwiseWith1x1BlockTest.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/DnnConfusionMatrixLayer.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/DnnCrossEntropyLossLayerTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/DnnCtcTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/DnnDistributedTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/DnnDropoutTest.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/DnnFocalLossTest.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/DnnGeluTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/DnnLambSolverTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/DnnLayersSerializationTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/DnnLoraTest.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/DnnLossLayerTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/DnnMobileNetV2BlockTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/DnnMobileNetV3BlockTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/DnnOnnxLayerTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/DnnOptimizationTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/DnnParameterLayerTest.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/DnnPrecisionRecallLayerTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/DnnReferenceTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/DnnRowwiseTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/DnnSerializationTest.cpp

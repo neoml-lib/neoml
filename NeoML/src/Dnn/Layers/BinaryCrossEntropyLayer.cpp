@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -20,22 +20,6 @@ limitations under the License.
 
 namespace NeoML {
 
-CBinaryCrossEntropyLossLayer::CBinaryCrossEntropyLossLayer( IMathEngine& mathEngine ) :
-	CLossLayer( mathEngine, "CCnnBinaryCrossEntropyLossLayer" ),
-	positiveWeightMinusOneValue( 0 )
-{
-}
-
-void CBinaryCrossEntropyLossLayer::SetPositiveWeight( float value )
-{
-	positiveWeightMinusOneValue = value - 1;
-}
-
-float CBinaryCrossEntropyLossLayer::GetPositiveWeight() const
-{
-	return positiveWeightMinusOneValue + 1;
-}
-
 void CBinaryCrossEntropyLossLayer::Reshape()
 {
 	CLossLayer::Reshape();
@@ -44,8 +28,8 @@ void CBinaryCrossEntropyLossLayer::Reshape()
 		"BinaryCrossEntropy layer can only work with a binary classificaion problem" );
 }
 
-void CBinaryCrossEntropyLossLayer::BatchCalculateLossAndGradient( int batchSize, CConstFloatHandle data, int /* vectorSize */,
-	CConstFloatHandle label, int /* labelSize */, CFloatHandle lossValue, CFloatHandle lossGradient )
+void CBinaryCrossEntropyLossLayer::BatchCalculateLossAndGradient( int batchSize, CConstFloatHandle data, int /*vectorSize*/,
+	CConstFloatHandle label, int /*labelSize*/, CFloatHandle lossValue, CFloatHandle lossGradient )
 {
 	// Therefore the labels vector can only contain {-1, 1} values
 	CFloatHandleStackVar one( MathEngine() );
@@ -56,22 +40,23 @@ void CBinaryCrossEntropyLossLayer::BatchCalculateLossAndGradient( int batchSize,
 	minusOne.SetValue( -1.f );
 	CFloatHandleStackVar zero( MathEngine() );
 	zero.SetValue( 0.f );
-	CFloatHandleStackVar positiveWeightMinusOne( MathEngine() );
-	positiveWeightMinusOne.SetValue( positiveWeightMinusOneValue );
+	CFloatHandleStackVar positiveWeightMinusOneVar( MathEngine() );
+	positiveWeightMinusOneVar.SetValue( positiveWeightMinusOne );
 
+	CFloatHandleStackVar temp( MathEngine(), batchSize * 3 );
 	// Convert the target values to [0, 1] range using the binaryLabel = 0.5 * ( label + 1 ) formula
-	CFloatHandleStackVar binaryLabel( MathEngine(), batchSize );
+	CFloatHandle binaryLabel = temp.GetHandle();
 	MathEngine().VectorAddValue( label, binaryLabel, batchSize, one );
 	MathEngine().VectorMultiply( binaryLabel, binaryLabel, batchSize, half );
 
 	// Notations:
-	// x = logits, z = labels, q = pos_weight, l = 1 + (q - 1) * z
+	// x = logits, z = labels, q = pos_weight, lCoef = 1 + (q - 1) * z
 
 	// The original loss function formula:
-	// loss =  (1 - z) * x + l * log(1 + exp(-x))
+	// loss = (1 - z) * x + lCoef * log(1 + exp(-x))
 
 	// The formula to avoid overflow for large exponent power in exp(-x):
-	// loss = (1 - z) * x + l * (log(1 + exp(-abs(x))) + max(-x, 0))
+	// loss = (1 - z) * x + lCoef * (log(1 + exp(-abs(x))) + max(-x, 0))
 
 	// (1-z)*x
 	CFloatHandleStackVar temp( MathEngine(), batchSize);
@@ -104,11 +89,11 @@ void CBinaryCrossEntropyLossLayer::BatchCalculateLossAndGradient( int batchSize,
 	MathEngine().VectorAdd( lossValue, temp, lossValue, batchSize );
 
 	if( !lossGradient.IsNull() ) {
-		// loss' = (1-z) - l / ( 1+exp(x) ) = (1-z) - l * sigmoid(-x) 
 
 		// (z-1)
 		CFloatHandleStackVar temp5( MathEngine(), batchSize );
 		MathEngine().VectorAddValue( binaryLabel, temp5, batchSize, minusOne );
+		// loss' = (1 - z) - lCoef / ( 1 + exp(x) ) = (1 - z) - lCoef * sigmoid(-x) 
 
 		// -x
 		CFloatHandleStackVar temp6( MathEngine(), batchSize );
@@ -130,7 +115,7 @@ void CBinaryCrossEntropyLossLayer::BatchCalculateLossAndGradient( int batchSize,
 }
 
 // Overflow-safe sigmoid calculation
-void CBinaryCrossEntropyLossLayer::calculateStableSigmoid( const CConstFloatHandle& firstHandle,
+void CBinaryCrossEntropyLossLayer::calculateStableSigmoid( const CFloatHandle& firstHandle,
 	const CFloatHandle& resultHandle, int vectorSize ) const
 {
 	CFloatHandleStackVar one( MathEngine() );
@@ -138,47 +123,52 @@ void CBinaryCrossEntropyLossLayer::calculateStableSigmoid( const CConstFloatHand
 	CFloatHandleStackVar zero( MathEngine() );
 	zero.SetValue( 0.f );
 
+	NeoPresume( !firstHandle.IsNull() );
+	NeoPresume( !resultHandle.IsNull() );
+	NeoPresume( firstHandle != resultHandle );
+	// reduced memory usage for calculation
+	CFloatHandle numerator = resultHandle;
+	CFloatHandle denominator = firstHandle;
+
 	// The sigmoid formula:
-	// Sigmoid(x) = 1 / (1 + e^-x )
+	// Sigmoid(x) = 1 / ( 1 + e^-x )
 
 	// The formula to avoid overflow for large exponent power in exp(-x):
-	// Sigmoid(x) = e^(-max(-x, 0) ) / ( 1 + e^-|x| ) 
+	// Sigmoid(x) = e^( -max(-x, 0) ) / ( 1 + e^-|x| ) 
 
-	// e^(-max(-x, 0) )
-	CFloatHandleStackVar temp( MathEngine(), vectorSize );
-	MathEngine().VectorNegMultiply( firstHandle, temp, vectorSize, one );
-	MathEngine().VectorReLU( temp, temp, vectorSize, zero );
-	MathEngine().VectorNegMultiply( temp, temp, vectorSize, one );
-	MathEngine().VectorExp( temp, temp, vectorSize );
+	// e^( -max(-x, 0) )
+	MathEngine().VectorNegMultiply( firstHandle, numerator, vectorSize, one );
+	MathEngine().VectorReLU( numerator, numerator, vectorSize, zero );
+	MathEngine().VectorNegMultiply( numerator, numerator, vectorSize, one );
+	MathEngine().VectorExp( numerator, numerator, vectorSize );
 
 	// ( 1 + e^-|x| ) 
-	CFloatHandleStackVar temp2( MathEngine(), vectorSize );
-	MathEngine().VectorAbs( firstHandle, temp2, vectorSize );
-	MathEngine().VectorNegMultiply( temp2, temp2, vectorSize, one );
-	MathEngine().VectorExp( temp2, temp2, vectorSize );
-	MathEngine().VectorAddValue( temp2, temp2, vectorSize, one );
+	MathEngine().VectorAbs( firstHandle, denominator, vectorSize );
+	MathEngine().VectorNegMultiply( denominator, denominator, vectorSize, one );
+	MathEngine().VectorExp( denominator, denominator, vectorSize );
+	MathEngine().VectorAddValue( denominator, denominator, vectorSize, one );
 
 	// The sigmoid
-	MathEngine().VectorEltwiseDivide( temp, temp2, resultHandle, vectorSize );
+	MathEngine().VectorEltwiseDivide( numerator, denominator, resultHandle, vectorSize );
 }
 
-static const int BinaryCrossEntropyLossLayerVersion = 2000;
+constexpr int binaryCrossEntropyLossLayerVersion = 2000;
 
 void CBinaryCrossEntropyLossLayer::Serialize( CArchive& archive )
 {
-	archive.SerializeVersion( BinaryCrossEntropyLossLayerVersion, CDnn::ArchiveMinSupportedVersion );
+	archive.SerializeVersion( binaryCrossEntropyLossLayerVersion, CDnn::ArchiveMinSupportedVersion );
 	CLossLayer::Serialize( archive );
-	
-	archive.Serialize( positiveWeightMinusOneValue );
+
+	archive.Serialize( positiveWeightMinusOne );
 }
 
-CLayerWrapper<CBinaryCrossEntropyLossLayer> BinaryCrossEntropyLoss(
-	float positiveWeight, float lossWeight )
+CLayerWrapper<CBinaryCrossEntropyLossLayer> BinaryCrossEntropyLoss( float positiveWeight, float lossWeight )
 {
-	return CLayerWrapper<CBinaryCrossEntropyLossLayer>( "BinaryCrossEntropyLoss", [=]( CBinaryCrossEntropyLossLayer* result ) {
-		result->SetPositiveWeight( positiveWeight );
-		result->SetLossWeight( lossWeight );
-	} );
+	return CLayerWrapper<CBinaryCrossEntropyLossLayer>( "BinaryCrossEntropyLoss",
+		[=]( CBinaryCrossEntropyLossLayer* result ) {
+			result->SetPositiveWeight( positiveWeight );
+			result->SetLossWeight( lossWeight );
+		} );
 }
 
 } // namespace NeoML

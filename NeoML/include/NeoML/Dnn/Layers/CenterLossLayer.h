@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -59,7 +59,7 @@ protected:
 
 private:
 	// The number of classes
-	int numberOfClasses;
+	int numberOfClasses = 0;
 	// The centers convergence rate
 	CPtr<CDnnBlob> classCentersConvergenceRate;
 	// The unit multiplier
@@ -67,7 +67,7 @@ private:
 	// The internal blobs
 	CPtr<CDnnBlob> classCentersBlob;
 
-	void updateCenters(const CFloatHandle& tempDiffHandle);
+	void updateCenters( const CConstFloatHandle& tempDiff, const CConstIntHandle& labels, int batchSize, int vectorSize );
 };
 
 NEOML_API CLayerWrapper<CCenterLossLayer> CenterLoss( int numberOfClasses,

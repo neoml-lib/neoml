@@ -1,4 +1,4 @@
-/* Copyright © 2017-2023 ABBYY
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -21,15 +21,15 @@ limitations under the License.
 namespace NeoML {
 
 // constants for the precise calculation and its backward
-static const float GELUOne = 1.0f;
-static const float GELUHalf = 0.5f;
-static const float GELUSqrt2Inv = 0.70710678f;
-static const float GELUSqrt2PiInv = 0.39894229f;
+static const float geluOne = 1.0f;
+static const float geluHalf = 0.5f;
+static const float geluSqrt2Inv = 0.70710678f;
+static const float geluSqrt2PiInv = 0.39894229f;
 
 // scale for the approximation
-static const float GELUApproximationMultiplier = 1.702f;
+static const float geluApproxScale = 1.702f;
 
-static const int CGELULayerVersion = 1;
+static const int geluLayerVersion = 1;
 
 CGELULayer::CGELULayer( IMathEngine& mathEngine ) :
 	CBaseLayer( mathEngine, "CGELULayer", false ),
@@ -39,16 +39,16 @@ CGELULayer::CGELULayer( IMathEngine& mathEngine ) :
 	sqrt2PiInvVar( mathEngine ),
 	approxScaleVar( mathEngine )
 {
-	oneVar.SetValue( GELUOne );
-	halfVar.SetValue( GELUHalf );
-	sqrt2InvVar.SetValue( GELUSqrt2Inv );
-	sqrt2PiInvVar.SetValue( GELUSqrt2PiInv );
-	approxScaleVar.SetValue( GELUApproximationMultiplier );
+	oneVar.SetValue( geluOne );
+	halfVar.SetValue( geluHalf );
+	sqrt2InvVar.SetValue( geluSqrt2Inv );
+	sqrt2PiInvVar.SetValue( geluSqrt2PiInv );
+	approxScaleVar.SetValue( geluApproxScale );
 }
 
 void CGELULayer::Serialize( CArchive& archive )
 {
-	const int version = archive.SerializeVersion( CGELULayerVersion );
+	const int version = archive.SerializeVersion( geluLayerVersion );
 	CBaseLayer::Serialize( archive );
 	if( version >= 1 ) {
 		archive.SerializeEnum( mode );
@@ -161,7 +161,10 @@ void CGELULayer::runFastApproximate()
 
 // (x * f(x))' = f(x) + xf'(x) = [memoized] + xerf'(x)
 // erf'(x) = 2/sqrt(pi) * e^(x^2)
-// Adding some scales and shifts, we get [0.5( 1 + erf( x / sqrt(2) ) )] + x / sqrt( 2pi ) * e ^ ( -x^2 / 2 ), where [...] is saved from the forward pass
+// 
+// Adding some scales and shifts, we get
+// [0.5( 1 + erf( x / sqrt(2) ) )] + x / sqrt( 2pi ) * e ^ ( -x^2 / 2 ),
+// where [...] is saved from the forward pass
 void CGELULayer::backwardPrecise()
 {
 	const int dataSize = inputBlobs[0]->GetDataSize();
@@ -196,16 +199,10 @@ void CGELULayer::backwardFastApproximate()
 	CFloatHandle input =  inputBlobs[0]->GetData();
 	CFloatHandle inputDiff = inputDiffBlobs[0]->GetData();
 
-	CFloatHandleStackVar buff( MathEngine(), 2 * static_cast<size_t>( dataSize ) );
-
-	CFloatHandle multipliedInput = buff.GetHandle();
-	CFloatHandle sigmoidMultipliedInput = buff.GetHandle() + dataSize;
+	CFloatHandleStackVar multipliedInput( MathEngine(), dataSize );
 
 	// multipliedInput = 1.702 * input
 	MathEngine().VectorMultiply( input, multipliedInput, dataSize, approxScaleVar );
-
-	// sigmoidMultipliedInput = sigmoid(1.702 * input)
-	MathEngine().VectorSigmoid( multipliedInput, sigmoidMultipliedInput, dataSize );
 
 	// inputDiffs = input * sigmoid_diff(1.702 * input)
 	MathEngine().VectorSigmoidDiff( multipliedInput, input, inputDiff, dataSize );
@@ -213,8 +210,11 @@ void CGELULayer::backwardFastApproximate()
 	// inputDiffs = input * sigmoid_diff(1.702 * input) * 1.702
 	MathEngine().VectorMultiply( inputDiff, inputDiff, dataSize, approxScaleVar );
 
-	// inputDiff = sigmoid(1.702 * input) + input * sigmoid_diff(1.702 * input) * 1.702
-	MathEngine().VectorAdd( inputDiff, sigmoidMultipliedInput, inputDiff, dataSize );
+	// multipliedInput = sigmoid(1.702 * input)
+	MathEngine().VectorSigmoid( multipliedInput, multipliedInput, dataSize );
+
+	// inputDiff = input * sigmoid_diff(1.702 * input) * 1.702 + sigmoid(1.702 * input)
+	MathEngine().VectorAdd( inputDiff, multipliedInput, inputDiff, dataSize );
 
 	// inputDiff *= outputDiff
 	 MathEngine().VectorEltwiseMultiply( inputDiff, outputDiffBlobs[0]->GetData(), inputDiff, dataSize );
