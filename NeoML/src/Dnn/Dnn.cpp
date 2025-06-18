@@ -104,6 +104,8 @@ limitations under the License.
 #include <NeoML/Dnn/Layers/TransformerLayer.h>
 #include <NeoML/Dnn/Layers/TransformerSourceMaskLayer.h>
 #include <NeoML/Dnn/Layers/Upsampling2DLayer.h>
+#include <NeoML/Dnn/DnnOptimization.h>
+
 #endif //!NEOML_COMPACT
 
 namespace NeoML {
@@ -810,7 +812,7 @@ static constexpr int dnnVersion = 2000;
 void CDnn::Serialize( CArchive& archive )
 {
 	NeoAssertMsg( !IsReferenceDnn(), "For ReferenceDnn serializing is restricted" );
-
+	size_t before = mathEngine.GetCurrentMemoryUsage();
 	int version = dnnVersion;
 	archive.Serialize( version );
 
@@ -853,6 +855,9 @@ void CDnn::Serialize( CArchive& archive )
 		// In order to avoid the CDnnSolver::Reset for the next solver
 		rebuild();
 	}
+	size_t after = mathEngine.GetCurrentMemoryUsage();
+
+	OptimizeDnnOnLoad(*this, after - before);
 }
 
 void CDnn::SerializeCheckpoint( CArchive& archive )
