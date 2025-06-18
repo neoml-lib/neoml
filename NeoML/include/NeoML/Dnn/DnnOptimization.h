@@ -116,4 +116,6 @@ struct NEOML_API CDnnOptimizationSettings final {
 CDnnOptimizationReport NEOML_API OptimizeDnn( CDnn& dnn,
 	const CDnnOptimizationSettings& settings = CDnnOptimizationSettings() );
 
+CDnnOptimizationReport NEOML_API OptimizeDnnOnLoad(CDnn& dnn, size_t dnnWeightsTotalSize);
+
 } // namespace NeoML
