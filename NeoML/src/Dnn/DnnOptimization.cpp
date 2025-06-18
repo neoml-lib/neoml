@@ -43,9 +43,29 @@ CDnnOptimizationReport OptimizeDnn( CDnn& dnn, const CDnnOptimizationSettings& s
 		optimization::CMobileNetV3Optimizer( graph ).Apply( report );
 
 		CArray<int> chains;
-		OptimizeRowwiseChains( dnn, chains );
+		OptimizeRowwiseChains(dnn, chains);
 		report.RowwiseChainCount = chains.Size();
 	}
+	return report;
+}
+
+CDnnOptimizationReport OptimizeDnnOnLoad(CDnn& dnn, size_t size)
+{
+	CDnnOptimizationReport report;
+	optimization::CGraph graph(dnn);
+
+	report.UnpackedCompositeLayers = optimization::UnpackComposites(graph);
+	report.RemovedTrivialLayers = optimization::RemoveTrivialLayers(graph);
+	optimization::CBatchNormFusionOptimizer(graph).Apply(report);
+
+	if (size < 1024 * 1024) {
+		optimization::CMobileNetV2Optimizer(graph).Apply(report);
+		
+		CArray<int> chains;
+		OptimizeRowwiseChains(dnn, chains);
+		report.RowwiseChainCount = chains.Size();
+	}
+
 	return report;
 }
 
