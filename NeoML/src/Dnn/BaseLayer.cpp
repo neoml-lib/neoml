@@ -241,8 +241,6 @@ void CBaseLayer::AllocateOutputBlobs()
 		return;
 	}
 
-	CMemoryModeSwitcher switcher( MathEngine(), GetDnn()->isReuseMemoryMode );
-
 	for( int i = 0; i < outputDescs.Size(); ++i ) {
 		if( outputBlobs[i] == nullptr ) {
 			outputBlobs[i] = CDnnBlob::CreateBlob( MathEngine(), outputDescs[i].GetDataType(), outputDescs[i] );
@@ -405,7 +403,7 @@ void CBaseLayer::reshape()
 	CArray<CBlobDesc> prevInputDescs;
 	inputDescs.MoveTo( prevInputDescs );
 	inputDescs.SetSize(inputs.Size());
-
+	
 	// Call the input layers reshape recursively, reset the input blobs
 	for( int i = 0; i < GetInputCount(); ++i ) {
 		GetInputLayer(i)->reshape();
@@ -420,7 +418,7 @@ void CBaseLayer::reshape()
 
 	if(!forcedReshape) {
 		for(int i = 0; i < inputBlobs.Size(); i++) {
-			forcedReshape = forcedReshape
+			forcedReshape = forcedReshape 
 				|| !inputDescs[i].HasEqualDimensions(prevInputDescs[i]);
 		}
 	}
@@ -529,7 +527,11 @@ void CBaseLayer::runOnce()
 		inputBlobs[i] = prevLayerOutput;
 	}
 
-	if( mayFreeIoBlobs() ) {
+	const bool mayFreeIoBlobs = GetDnn()->isReuseMemoryMode
+		&& ( !GetDnn()->isBackwardPerformed || !GetDnn()->IsRecurrentMode() || GetDnn()->IsLastSequencePos()
+			|| ( ( blobsNeededForBackward & TInputBlobs ) == 0 && ( !isInPlace || ( blobsNeededForBackward & TOutputBlobs ) == 0 ) ) );
+
+	if( mayFreeIoBlobs ) {
 		for( int i = 0; i < inputBlobs.Size(); ++i ) {
 			CBaseLayer* inputLayer = GetInputLayer( i );
 			const int outputNumber = inputs[i].OutputNumber;
@@ -558,39 +560,6 @@ void CBaseLayer::runOnce()
 	if( GetDnn()->isReuseMemoryMode ) {
 		setAllocatedBlobs( TOutputBlobs | blobsNeededForBackward );
 	}
-}
-
-// Checks if output blobs of input layers can be discarded.
-bool CBaseLayer::mayFreeIoBlobs() const
-{
-	assert( dnn != nullptr );
-
-	if( !dnn->isReuseMemoryMode ) {
-		// Memory reuse turned off.
-		return false;
-	}
-
-	if( dnn->IsRecurrentMode() && !dnn->IsLastSequencePos() ) {
-		// Recurrent layer processing is incomplete.
-		return false;
-	}
-
-	if( !dnn->isBackwardPerformed ) {
-		// Inference mode, intermediate data is not required.
-		return true;
-	}
-
-	if( (blobsNeededForBackward & TInputBlobs) != 0 ) {
-		// Input blobs are required for back propagation.
-		return false;
-	}
-
-	if( isInPlace && (blobsNeededForBackward & TOutputBlobs) != 0 ) {
-		// Output blobs are required for back propagation and they are the same as input.
-		return false;
-	}
-
-	return true;
 }
 
 // Recalculates the isBackwardNeeded flag; recursively checks the inputs
@@ -654,7 +623,7 @@ void CBaseLayer::backwardRunAndLearnOnce()
 			}
 		}
 
-		// Perform one step of error backward propagation:
+		// Perform one step of error backward propagation: 
 		// calculate the input error from the output one
 		BackwardOnce();
 	}
@@ -676,7 +645,7 @@ void CBaseLayer::backwardRunAndLearnOnce()
 			paramDiffBlobs.DeleteAll();
 		}
 	}
-
+	
 	outputDiffBlobs.DeleteAll();
 
 	if( IsBackwardPerformed() ) {
@@ -710,7 +679,7 @@ void CBaseLayer::backwardRunAndLearnOnce()
 }
 
 // Handles the notification that output diff is ready for a given output
-// If that is the last output diff necessary for learning,
+// If that is the last output diff necessary for learning, 
 // backpropagation and learning are started for this layer
 void CBaseLayer::transferDiffBlob( CDnnBlob* diffBlob, int outputNum )
 {
