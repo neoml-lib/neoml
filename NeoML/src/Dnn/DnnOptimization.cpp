@@ -58,9 +58,7 @@ CDnnOptimizationReport OptimizeDnnOnLoad(CDnn& dnn, size_t size)
 	report.RemovedTrivialLayers = optimization::RemoveTrivialLayers(graph);
 	optimization::CBatchNormFusionOptimizer(graph).Apply(report);
 
-	if (size < 1024 * 1024) {
-		optimization::CMobileNetV2Optimizer(graph).Apply(report);
-		
+	if (size < 1024 * 1024) {		
 		CArray<int> chains;
 		OptimizeRowwiseChains(dnn, chains);
 		report.RowwiseChainCount = chains.Size();
