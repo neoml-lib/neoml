@@ -350,7 +350,6 @@ void CLstmLayer::Serialize( CArchive& archive )
 void CLstmLayer::RunOnce()
 {
 	if( MathEngine().GetType() == MET_Cpu &&
-		!isInCompatibilityMode &&
 		!IsBackwardPerformed() &&
 		!IsLearningPerformed() &&
 		recurrentActivation == AF_Sigmoid )
@@ -471,7 +470,7 @@ void CLstmLayer::initDesc()
 			: inputHiddenLayer->FreeTerms()->GetData();
 		CConstFloatHandle recurrentFreeTerm = recurHiddenLayer->FreeTerms() == nullptr ? CConstFloatHandle()
 			: recurHiddenLayer->FreeTerms()->GetData();
-		lstmDesc = MathEngine().InitLstm( GetHiddenSize(), inputBlobs[0]->GetObjectSize(),
+		lstmDesc = MathEngine().InitLstm( isInCompatibilityMode, GetHiddenSize(), inputBlobs[0]->GetObjectSize(),
 			inputHiddenLayer->Weights()->GetData(), inputFreeTerm,
 			recurHiddenLayer->Weights()->GetData(), recurrentFreeTerm );
 	}

@@ -63,10 +63,11 @@ static const float* initLstmFreeTerm( const CFloatHandleVar* freeTermVar, const 
 
 //-------------------------------------------------------------------------------------------------------------------------
 
-CMathEngineLstmDesc::CMathEngineLstmDesc(
+CMathEngineLstmDesc::CMathEngineLstmDesc( bool isCompatibleMode,
 		int hiddenSize, int objectSize, const CConstFloatHandle& inputWeights,
 		const CConstFloatHandle& inputFreeTerm, const CConstFloatHandle& recurWeights,
 		const CConstFloatHandle& recurFreeTerm ) :
+	IsCompatibleMode( IsCompatibleMode ),
 	HiddenSize( hiddenSize ),
 	ObjectSize( objectSize ),
 	InputWeights( GetRaw( inputWeights ) ),
@@ -78,11 +79,11 @@ CMathEngineLstmDesc::CMathEngineLstmDesc(
 
 CMathEngineLstmDesc::~CMathEngineLstmDesc() = default;
 
-CLstmDesc* CCpuMathEngine::InitLstm( int hiddenSize, int objectSize,
+CLstmDesc* CCpuMathEngine::InitLstm( bool isCompatibleMode, int hiddenSize, int objectSize,
 	const CConstFloatHandle& inputWeights, const CConstFloatHandle& inputFreeTerm,
 	const CConstFloatHandle& recurrentWeights, const CConstFloatHandle& recurrentFreeTerm )
 {
-	return new CMathEngineLstmDesc( hiddenSize, objectSize, inputWeights, inputFreeTerm,
+	return new CMathEngineLstmDesc( isCompatibleMode, hiddenSize, objectSize, inputWeights, inputFreeTerm,
 		recurrentWeights, recurrentFreeTerm );
 }
 
@@ -131,8 +132,11 @@ void CCpuMathEngine::Lstm( CLstmDesc& desc, bool reverse, int sequenceLength, in
 	// Write state data directly to output or create temporary blob for recurent
 	std::unique_ptr<CFloatHandleStackVar> stateBackLinkVar;
 	if( outputStateBackLink.IsNull() ) {
-		stateBackLinkVar.reset( new CFloatHandleStackVar( *this, sequenceCount * lstmDesc.HiddenSize ) );
+		stateBackLinkVar.reset( new CFloatHandleStackVar( *this, sequenceLength * sequenceCount * lstmDesc.HiddenSize ) );
 	}
+
+	CSequenceWrapper<float> output(outputMainBackLink, sequenceLength, sequenceCount * lstmDesc.HiddenSize);
+
 	CSequenceWrapper<float> stateBackLink(
 		outputStateBackLink.IsNull() ? stateBackLinkVar->GetHandle() : outputStateBackLink,
 		outputStateBackLink.IsNull() ? 1 : sequenceLength,
@@ -146,7 +150,11 @@ void CCpuMathEngine::Lstm( CLstmDesc& desc, bool reverse, int sequenceLength, in
 		fcLen, sequenceCount * 4 * lstmDesc.HiddenSize );
 
 	// Emulate working of LSTM recurrent implementation
-	CSequenceWrapper<float> mainBackLink( outputMainBackLink, sequenceLength, sequenceCount * lstmDesc.HiddenSize );
+	std::unique_ptr<CFloatHandleStackVar> mainBackLinkVar;
+	if (lstmDesc.IsCompatibleMode) {
+		mainBackLinkVar.reset(new CFloatHandleStackVar(*this, sequenceLength * sequenceCount * lstmDesc.HiddenSize));
+	}
+	CSequenceWrapper<float> mainBackLink(lstmDesc.IsCompatibleMode ? mainBackLinkVar->GetHandle() : outputMainBackLink, sequenceLength, sequenceCount * lstmDesc.HiddenSize );
 	initializeBacklink( inputMainBackLink, mainBackLink );
 
 	CSequenceWrapper<const float> input( inputHandle, sequenceLength, sequenceCount * lstmDesc.ObjectSize );
@@ -197,14 +205,8 @@ void CCpuMathEngine::Lstm( CLstmDesc& desc, bool reverse, int sequenceLength, in
 				sequenceCount, resultWidth, resultWidth, resultWidth, lstmDesc.FreeTerm );
 		}
 
-		// if outputMainBackLink != output then we are in compatibility mode
-		if( simdMathEngine != nullptr ) {
-			simdMathEngine->RunOnceRestOfLstm( &lstmDesc, sequenceCount, fullyConnectedResult[outputPos],
-				stateBackLink[inputPos], stateBackLink[outputPos], mainBackLink[outputPos] );
-		} else {
-			lstmDesc.RunOnceRestOfLstm( sequenceCount, fullyConnectedResult[outputPos], stateBackLink[inputPos],
-				stateBackLink[outputPos], mainBackLink[outputPos] );
-		}
+		lstmDesc.RunOnceRestOfLstm(lstmDesc.IsCompatibleMode, sequenceCount, fullyConnectedResult[outputPos], stateBackLink[inputPos],
+			stateBackLink[outputPos], mainBackLink[outputPos], output[outputPos]);
 		--seqElemsInBuffer;
 	}
 }
