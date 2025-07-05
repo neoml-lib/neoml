@@ -1002,7 +1002,7 @@ public:
 		const CFloatHandle& inputDiff ) = 0;
 
 	// Creates descriptor of LSTM with given weights be created.
-	virtual CLstmDesc* InitLstm( int hiddenSize, int objectSize,
+	virtual CLstmDesc* InitLstm( bool isCompatibleMode, int hiddenSize, int objectSize,
 		const CConstFloatHandle& inputWeights, const CConstFloatHandle& inputFreeTerm,
 		const CConstFloatHandle& recurrentWeights, const CConstFloatHandle& recurrentFreeTerm ) = 0;
 	virtual void Lstm( CLstmDesc& desc, bool reverse, int sequenceLength, int sequenceCount,

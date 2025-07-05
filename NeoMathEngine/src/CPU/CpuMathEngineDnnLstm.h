@@ -26,7 +26,7 @@ limitations under the License.
 namespace NeoML {
 
 struct CMathEngineLstmDesc : public CLstmDesc {
-	CMathEngineLstmDesc(
+	CMathEngineLstmDesc( bool isCompatibleMode,
 		int hiddenSize, int objectSize, const CConstFloatHandle& inputWeights,
 		const CConstFloatHandle& inputFreeTerm, const CConstFloatHandle& recurWeights,
 		const CConstFloatHandle& recurFreeTerm );
@@ -34,6 +34,7 @@ struct CMathEngineLstmDesc : public CLstmDesc {
 
 	static int constexpr GatesNum = 4;
 
+	const bool IsCompatibleMode;
 	const int HiddenSize;
 	const int ObjectSize;
 	const float* const InputWeights;
@@ -42,12 +43,12 @@ struct CMathEngineLstmDesc : public CLstmDesc {
 	const std::unique_ptr<CFloatHandleVar> FreeTermVar;
 	const float* const FreeTerm;
 
-	virtual void RunOnceRestOfLstm( int objectCount, float* fullyConnectedResult, const float* inputStateBackLink,
-		float* outputStateBackLink, float* outputMainBackLink );
+	virtual void RunOnceRestOfLstm( bool isCompatibleMode, int objectCount, float* fullyConnectedResult, const float* inputStateBackLink,
+		float* outputStateBackLink, float* outputMainBackLink, float* output );
 };
 
-inline void CMathEngineLstmDesc::RunOnceRestOfLstm( int objectCount, float* fullyConnectedResult,
-	const float* inputStateBackLink, float* outputStateBackLink, float* outputMainBackLink )
+inline void CMathEngineLstmDesc::RunOnceRestOfLstm( bool isCompatibleMode, int objectCount, float* fullyConnectedResult,
+	const float* inputStateBackLink, float* outputStateBackLink, float* outputMainBackLink, float* compatibleOutput )
 {
 	// Elementwise summ of fully connected layers' results (inplace)
 	const int resultMatrixWidth = CMathEngineLstmDesc::GatesNum * HiddenSize;
@@ -76,10 +77,10 @@ inline void CMathEngineLstmDesc::RunOnceRestOfLstm( int objectCount, float* full
 		NeoML::vectorAdd( forgetData, inputData, outputStateBackLink, HiddenSize );
 
 		// Apply tanh to state baclink
-		NeoML::vectorTanh( outputStateBackLink, inputData, HiddenSize );
+		NeoML::vectorTanh( outputStateBackLink, isCompatibleMode ? compatibleOutput : inputData, HiddenSize );
 
 		// Multiply output gate with result of previous operation
-		NeoML::vectorEltwiseMultiply( outputData, inputData, outputMainBackLink, HiddenSize );
+		NeoML::vectorEltwiseMultiply( outputData, isCompatibleMode ? compatibleOutput : inputData, outputMainBackLink, HiddenSize );
 
 		inputTanhData += resultMatrixWidth;
 		forgetData += resultMatrixWidth;
@@ -88,6 +89,7 @@ inline void CMathEngineLstmDesc::RunOnceRestOfLstm( int objectCount, float* full
 		inputStateBackLink += HiddenSize;
 		outputStateBackLink += HiddenSize;
 		outputMainBackLink += HiddenSize;
+		compatibleOutput += HiddenSize;
 	}
 }
 
