@@ -241,6 +241,8 @@ void CBaseLayer::AllocateOutputBlobs()
 		return;
 	}
 
+	CMemoryModeSwitcher switcher( MathEngine(), GetDnn()->isReuseMemoryMode );
+
 	for( int i = 0; i < outputDescs.Size(); ++i ) {
 		if( outputBlobs[i] == nullptr ) {
 			outputBlobs[i] = CDnnBlob::CreateBlob( MathEngine(), outputDescs[i].GetDataType(), outputDescs[i] );

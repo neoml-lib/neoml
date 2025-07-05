@@ -812,7 +812,7 @@ static constexpr int dnnVersion = 2000;
 void CDnn::Serialize( CArchive& archive )
 {
 	NeoAssertMsg( !IsReferenceDnn(), "For ReferenceDnn serializing is restricted" );
-	size_t before = mathEngine.GetCurrentMemoryUsage();
+
 	int version = dnnVersion;
 	archive.Serialize( version );
 
@@ -855,9 +855,6 @@ void CDnn::Serialize( CArchive& archive )
 		// In order to avoid the CDnnSolver::Reset for the next solver
 		rebuild();
 	}
-	size_t after = mathEngine.GetCurrentMemoryUsage();
-
-	OptimizeDnnOnLoad(*this, after - before);
 }
 
 void CDnn::SerializeCheckpoint( CArchive& archive )
