@@ -197,6 +197,13 @@ void CCaptureSinkLayer::BackwardOnce()
 	inputDiffBlobs[0] = diffBlob;
 }
 
+void CCaptureSinkLayer::CleanUp( bool totalCleanUp )
+{
+	CBaseLayer::CleanUp( totalCleanUp );
+	blob.Release();
+	diffBlob.Release();
+}
+
 static const int CaptureSinkLayerVersion = 2000;
 
 void CCaptureSinkLayer::Serialize( CArchive& archive )

@@ -87,6 +87,8 @@ public:
 	void CopyDiffBlob( CDnnBlob* diffBlob );
 	void ClearDiffBlob();
 
+	void CleanUp( bool totalCleanUp ) override;
+
 protected:
 	void Reshape() override;
 	void RunOnce() override;
