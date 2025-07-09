@@ -67,7 +67,7 @@ CMathEngineLstmDesc::CMathEngineLstmDesc( bool isCompatibleMode,
 		int hiddenSize, int objectSize, const CConstFloatHandle& inputWeights,
 		const CConstFloatHandle& inputFreeTerm, const CConstFloatHandle& recurWeights,
 		const CConstFloatHandle& recurFreeTerm ) :
-	IsCompatibleMode( IsCompatibleMode ),
+	IsCompatibleMode( isCompatibleMode ),
 	HiddenSize( hiddenSize ),
 	ObjectSize( objectSize ),
 	InputWeights( GetRaw( inputWeights ) ),
