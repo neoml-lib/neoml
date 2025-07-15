@@ -205,8 +205,13 @@ void CCpuMathEngine::Lstm( CLstmDesc& desc, bool reverse, int sequenceLength, in
 				sequenceCount, resultWidth, resultWidth, resultWidth, lstmDesc.FreeTerm );
 		}
 
-		lstmDesc.RunOnceRestOfLstm(lstmDesc.IsCompatibleMode, sequenceCount, fullyConnectedResult[outputPos], stateBackLink[inputPos],
-			stateBackLink[outputPos], mainBackLink[outputPos], output[outputPos]);
+		if( simdMathEngine != nullptr && !lstmDesc.IsCompatibleMode ) {
+			simdMathEngine->RunOnceRestOfLstm( &lstmDesc, sequenceCount, fullyConnectedResult[outputPos],
+				stateBackLink[inputPos], stateBackLink[outputPos], mainBackLink[outputPos] );
+		} else {
+			lstmDesc.RunOnceRestOfLstm(lstmDesc.IsCompatibleMode, sequenceCount, fullyConnectedResult[outputPos], stateBackLink[inputPos],
+				stateBackLink[outputPos], mainBackLink[outputPos], output[outputPos]);
+		}
 		--seqElemsInBuffer;
 	}
 }
