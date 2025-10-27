@@ -20,6 +20,7 @@ Abstract:
 #include <cstddef>
 #include <cstdlib>
 #include <cstdint>
+#include <cstring>
 
 //
 // Define the calling convention for Windows targets.

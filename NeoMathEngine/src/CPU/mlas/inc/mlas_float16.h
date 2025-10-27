@@ -21,6 +21,7 @@ Abstract:
 #include <cstddef>
 #include <cstdint>
 #include <cstdlib>
+#include <cstring>
 
 
 using _mlas_fp16_ = uint16_t;
