@@ -98,6 +98,7 @@ private:
 		int PrevStep; // the index of the previous step in executedSteps for complex steps; NotFound for simple steps
 		short InitialStepIndex; // the index in the initialSteps array; used to generate next steps
 
+		CStep() = default; // usage in CFastArray requires default constructor
 		CStep( const Quality& zeroQuality );
 		bool IsNull() const { return VariantIndex == 0; }
 	};
