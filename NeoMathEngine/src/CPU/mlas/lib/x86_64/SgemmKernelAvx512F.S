@@ -31,4 +31,6 @@ Abstract:
 
 FgemmKernelAvx512FFunction MlasGemmFloatKernelAvx512F
 
+.section .note.GNU-stack,"",@progbits
+
         .end

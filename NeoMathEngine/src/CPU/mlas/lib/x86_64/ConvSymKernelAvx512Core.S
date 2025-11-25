@@ -887,4 +887,6 @@ ConvSymDepthwiseKernelFunction Avx512Core
 ConvSymKernelFunction Avx512Vnni
 ConvSymDepthwiseKernelFunction Avx512Vnni
 
+.section        .note.GNU-stack,"",@progbits
+
         .end

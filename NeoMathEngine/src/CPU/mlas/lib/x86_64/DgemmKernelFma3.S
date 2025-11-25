@@ -31,4 +31,7 @@ Abstract:
 
 FgemmKernelFma3Function MlasGemmDoubleKernelFma3
 
+.section .note.GNU-stack,"",@progbits
+
         .end
+        

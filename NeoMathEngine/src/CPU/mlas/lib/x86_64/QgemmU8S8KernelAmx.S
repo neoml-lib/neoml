@@ -512,5 +512,7 @@ Return Value:
         pop     rbp
         ret
 
+.section .note.GNU-stack,"",@progbits
 
         .end
+

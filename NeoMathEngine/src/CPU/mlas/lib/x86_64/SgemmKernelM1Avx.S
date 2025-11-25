@@ -264,4 +264,6 @@ Return Value:
         vmaskmovps YMMWORD PTR [rdx],ymm7,ymm1
         jmp     .LExitKernel
 
+.section .note.GNU-stack,"",@progbits
+
         .end

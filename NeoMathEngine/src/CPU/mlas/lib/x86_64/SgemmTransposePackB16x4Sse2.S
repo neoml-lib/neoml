@@ -80,4 +80,6 @@ Return Value:
         jnz     .LTransposeBlockLoop
         ret
 
+.section .note.GNU-stack,"",@progbits
+
         .end
