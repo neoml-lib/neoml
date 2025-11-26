@@ -30,4 +30,6 @@ Abstract:
 
 GemvU8S8KernelAvx512Function Avx512Core
 
+.section .note.GNU-stack,"",@progbits
+
         .end

@@ -403,4 +403,6 @@ Return Value:
         movups  XMMWORD PTR [esi],xmm7
         jmp     .LExitKernel
 
+.section .note.GNU-stack,"",@progbits
+
         .end
