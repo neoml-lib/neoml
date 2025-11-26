@@ -227,4 +227,7 @@ Implicit Arguments:
 
 FgemmKernelSse2Function MlasGemmDoubleKernelSse
 
+.section .note.GNU-stack,"",@progbits
+
         .end
+

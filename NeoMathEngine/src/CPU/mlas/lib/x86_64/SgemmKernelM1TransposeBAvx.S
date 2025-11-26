@@ -272,4 +272,6 @@ Return Value:
         vmovss  DWORD PTR [rdx],xmm2
         jmp     .LExitKernel
 
+.section .note.GNU-stack,"",@progbits
+
         .end

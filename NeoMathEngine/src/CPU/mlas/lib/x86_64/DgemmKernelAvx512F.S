@@ -31,4 +31,6 @@ Abstract:
 
 FgemmKernelAvx512FFunction MlasGemmDoubleKernelAvx512F
 
+.section .note.GNU-stack,"",@progbits
+
         .end

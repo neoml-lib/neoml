@@ -31,4 +31,6 @@ Abstract:
 
 FgemmKernelAvxFunction MlasGemmDoubleKernelAvx
 
+.section .note.GNU-stack,"",@progbits
+
         .end
