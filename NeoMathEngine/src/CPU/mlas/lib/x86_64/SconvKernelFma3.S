@@ -244,4 +244,6 @@ Implicit Arguments:
         SconvKernelDepthwiseFunction 8, Fma3
         SconvKernelPointwiseFunction Fma3, BiasFilter
 
+.section .note.GNU-stack,"",@progbits
+
         .end

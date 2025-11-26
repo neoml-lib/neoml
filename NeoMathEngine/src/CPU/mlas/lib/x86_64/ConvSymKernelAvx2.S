@@ -940,4 +940,7 @@ ConvSymDepthwiseKernelFunction Avx2
 ConvSymKernelFunction AvxVnni
 ConvSymDepthwiseKernelFunction AvxVnni
 
+.section .note.GNU-stack,"",@progbits
+
         .end
+

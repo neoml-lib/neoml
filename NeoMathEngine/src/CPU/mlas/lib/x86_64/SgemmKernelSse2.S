@@ -270,4 +270,6 @@ Implicit Arguments:
 
 FgemmKernelSse2Function MlasGemmFloatKernelSse
 
+.section .note.GNU-stack,"",@progbits
+
         .end

@@ -31,3 +31,5 @@ Routine Description:
 __x86.get_pc_thunk.bx:
         mov ebx, [esp]
         ret
+
+.section .note.GNU-stack,"",@progbits
