@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -33,23 +33,23 @@ public:
 
 	// Retrieves the result over the last batch as a 4-number array:
 	// true positives, positives total, true negatives, negatives total
-	void GetLastResult( CArray<int>& results );
+	void GetLastResult( CArray<int>& results ) const;
 
 protected:
 	void Reshape() override;
 	void OnReset() override;
 	void RunOnceAfterReset() override;
 
-	virtual int& PositivesTotal(){ return positivesTotal; };
-	virtual int& NegativesTotal(){ return negativesTotal; };
-	virtual int& PositivesCorrect(){ return positivesCorrect; };
-	virtual int& NegativesCorrect(){ return negativesCorrect; };
+	virtual int PositivesTotal() const { return accumulated->GetData<int>().GetValueAt( TP_PositivesTotal ); }
+	virtual int NegativesTotal() const { return accumulated->GetData<int>().GetValueAt( TP_NegativesTotal ); }
+	virtual int PositivesCorrect() const { return accumulated->GetData<int>().GetValueAt( TP_PositivesCorrect ); }
+	virtual int NegativesCorrect() const { return accumulated->GetData<int>().GetValueAt( TP_NegativesCorrect ); }
 
 private:
-	int positivesTotal;
-	int negativesTotal;
-	int positivesCorrect;
-	int negativesCorrect;
+	enum { TP_PositivesCorrect, TP_PositivesTotal, TP_NegativesCorrect, TP_NegativesTotal, TP_Count };
+	// Store consts in device memory to avoid excess syncs
+	CPtr<CDnnBlob> accumulated;
+	CPtr<CDnnBlob> current;
 };
 
 NEOML_API CLayerWrapper<CPrecisionRecallLayer> PrecisionRecall();

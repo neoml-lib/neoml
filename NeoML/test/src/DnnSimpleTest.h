@@ -35,6 +35,14 @@ protected:
 	void LearnOnce() override;
 };
 
+inline CLayerWrapper<CDnnSimpleTestDummyLearningLayer> SimpleTestDummyLearn( CPtr<CDnnBlob> ExpectedDiff = nullptr )
+{
+	return CLayerWrapper<CDnnSimpleTestDummyLearningLayer>( "CDnnSimpleTestDummyLearningLayer",
+		[=]( CDnnSimpleTestDummyLearningLayer* result ) {
+			result->ExpectedDiff = ExpectedDiff;
+		} );
+}
+
 //---------------------------------------------------------------------------------------------------------------------
 
 class CDnnSimpleTestDummyLossLayer : public CLossLayer {
@@ -58,5 +66,13 @@ protected:
 		CConstFloatHandle label, int labelSize, CFloatHandle lossValue, CFloatHandle lossGradient,
 		CFloatHandle labelLossGradient ) override;
 };
+
+inline CLayerWrapper<CDnnSimpleTestDummyLossLayer> SimpleTestDummyLoss()
+{
+	return CLayerWrapper<CDnnSimpleTestDummyLossLayer>( "CDnnSimpleTestDummyLossLayer",
+		[=]( CDnnSimpleTestDummyLossLayer* /*result*/ ) {
+			// TODO
+		} );
+}
 
 } // namespace NeoMLTest
