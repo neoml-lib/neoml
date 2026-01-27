@@ -165,6 +165,7 @@ struct CDistributedTraining::CThreadParams final {
 	bool* const IsFirstRun;
 	IDistributedDataset* const Data;
 	CPointerArray<CDnn>& Dnns;
+	CArray<bool>* IsDnnInferenced;
 	CArray<int>& BatchSize;
 	const bool IsCpu;
 	CArray<CString>& ErrorMessages;
@@ -173,19 +174,25 @@ struct CDistributedTraining::CThreadParams final {
 
 	// RunOnce and RunAndBackwardOnce
 	CThreadParams( bool* isFirstRun, IDistributedDataset* data, CPointerArray<CDnn>& dnns,
-			CArray<int>& batchSize, bool isCpu, CArray<CString>& errorMessages ) :
+			CArray<bool>* isDnnInferenced, CArray<int>& batchSize, bool isCpu, CArray<CString>& errorMessages ) :
 		IsFirstRun( isFirstRun ),
 		Data( data ),
 		Dnns( dnns ),
+		IsDnnInferenced( isDnnInferenced ),
 		BatchSize( batchSize ),
 		IsCpu( isCpu ),
 		ErrorMessages( errorMessages )
-	{}
+	{
+		if( IsDnnInferenced != nullptr ) {
+			IsDnnInferenced->DeleteAll();
+			IsDnnInferenced->Add( false, Dnns.Size() );
+		}
+	}
 
 	// solver.Train
 	CThreadParams( CPointerArray<CDnn>& dnns,
 			CArray<int>& batchSize, int totalBatch, bool isCpu, CArray<CString>& errorMessages ) :
-		CThreadParams( nullptr, nullptr, dnns, batchSize, isCpu, errorMessages )
+		CThreadParams( nullptr, nullptr, dnns, nullptr, batchSize, isCpu, errorMessages )
 	{ TotalBatch = totalBatch; }
 
 	void SetErrorMessage( int threadIndex, CString message );
@@ -195,6 +202,7 @@ void CDistributedTraining::CThreadParams::SetErrorMessage( int threadIndex, CStr
 {
 	IsErrorHappened = true;
 	ErrorMessages[threadIndex] = std::move( message );
+	ErrorMessages[threadIndex] += "(thread = " + Str( threadIndex ) + ")";
 	// This abort is monitored only inside:
 	//   - CDnnSolver::allReduce (MathEngine.AllReduce)
 	//   - CDnnDistributedInitializer::InitializeLayerParams (MathEngine.Broadcast)
@@ -217,6 +225,7 @@ void CDistributedTraining::initialize( CArchive& archive, int count, TDistribute
 		archive.Serialize( *cnns[i] );
 		archive.Seek( 0, static_cast<CBaseFile::TSeekPosition>( 0 ) );
 	}
+	isDnnInferenced.Add( false, count );
 	batchSize.Add( 0, count );
 	errorMessages.Add( {}, count );
 }
@@ -342,22 +351,20 @@ float CDistributedTraining::GetLearningRate() const
 
 void CDistributedTraining::RunOnce( IDistributedDataset& data )
 {
-	CThreadParams function_params( &isFirstRun, &data, cnns, batchSize, isCpu, errorMessages );
+	CThreadParams function_params( nullptr, &data, cnns, &isDnnInferenced, batchSize, isCpu, errorMessages );
 
 	IThreadPool::TFunction f = [](int threadIndex, void* ptr)
 	{
 		CThreadParams& function_params = *static_cast<CThreadParams*>( ptr );
 		CPointerArray<CDnn>& cnns = function_params.Dnns;
-		CArray<int>& batchSize = function_params.BatchSize;
 		try {
 			CThreadGroupSwitcher groupSwitcher( function_params.IsCpu, threadIndex, cnns.Size() );
+			// Returns the current batch size (or 0, if there is no data for this thread on this run)
 			const int currBatchSize = function_params.Data->SetInputBatch( *cnns[threadIndex], threadIndex );
-			NeoAssert( currBatchSize > 0 || ( currBatchSize == 0 && !( *function_params.IsFirstRun ) ) );
 			if( currBatchSize > 0 ) {
-				batchSize[threadIndex] += currBatchSize;
 				cnns[threadIndex]->RunOnce();
+				function_params.IsDnnInferenced->ReplaceAt( true, threadIndex );
 			}
-			*function_params.IsFirstRun = false;
 		} catch( std::exception& e ) {
 			function_params.SetErrorMessage( threadIndex, e.what() );
 		}
@@ -376,7 +383,7 @@ void CDistributedTraining::RunOnce( IDistributedDataset& data )
 
 void CDistributedTraining::RunAndBackwardOnce( IDistributedDataset& data )
 {
-	CThreadParams function_params( &isFirstRun, &data, cnns, batchSize, isCpu, errorMessages );
+	CThreadParams function_params( &isFirstRun, &data, cnns, &isDnnInferenced, batchSize, isCpu, errorMessages );
 
 	IThreadPool::TFunction f = [](int threadIndex, void* ptr)
 	{
@@ -385,11 +392,15 @@ void CDistributedTraining::RunAndBackwardOnce( IDistributedDataset& data )
 		CArray<int>& batchSize = function_params.BatchSize;
 		try {
 			CThreadGroupSwitcher groupSwitcher( function_params.IsCpu, threadIndex, cnns.Size() );
+			// Returns the current batch size (or 0, if there is no data for this thread on this run)
 			const int currBatchSize = function_params.Data->SetInputBatch( *cnns[threadIndex], threadIndex );
+			// Cannot avoid this assert, in solver->Train() should participate all of dnns
 			NeoAssert( currBatchSize > 0 || ( currBatchSize == 0 && !( *function_params.IsFirstRun ) ) );
 			if( currBatchSize > 0 ) {
 				batchSize[threadIndex] += currBatchSize;
 				cnns[threadIndex]->RunAndBackwardOnce();
+				// May want retreive the sinks results after this, because RunOnce() was launched
+				function_params.IsDnnInferenced->ReplaceAt( true, threadIndex );
 			}
 			*function_params.IsFirstRun = false;
 		} catch( std::exception& e ) {
@@ -474,8 +485,11 @@ void CDistributedTraining::GetLastLoss( const CString& layerName, CArray<float>&
 void CDistributedTraining::GetLastBlob( const CString& layerName, CObjectArray<const CDnnBlob>& blobs ) const
 {
 	blobs.SetSize( cnns.Size() );
+	// Return blobs for all models
 	for( int i = 0; i < cnns.Size(); ++i ) {
-		blobs[i] = CheckCast<const CSinkLayer>( cnns[i]->GetLayer( layerName ) )->GetBlob();
+		blobs[i] = ( isDnnInferenced[i] )
+			? CheckCast<const CSinkLayer>( cnns[i]->GetLayer( layerName ) )->GetBlob()
+			: nullptr;
 	}
 }
 
@@ -483,8 +497,11 @@ void CDistributedTraining::GetLastBlob( const CString& layerName, CObjectArray<c
 void CDistributedTraining::GetLastBlob( const CString& layerName, CObjectArray<CDnnBlob>& blobs ) const
 {
 	blobs.SetSize( cnns.Size() );
+	// Return blobs for all models
 	for( int i = 0; i < cnns.Size(); ++i ) {
-		blobs[i] = CheckCast<const CSinkLayer>( cnns[i]->GetLayer( layerName ) )->GetBlob();
+		blobs[i] = ( isDnnInferenced[i] )
+			? CheckCast<const CSinkLayer>( cnns[i]->GetLayer( layerName ) )->GetBlob()
+			: nullptr;
 	}
 }
 
@@ -518,6 +535,7 @@ struct CDistributedInference::CThreadParams final {
 
 	CThreadParams( int threadsCount, CReferenceDnnFactory& referenceDnnFactory );
 	void Initialize( IDistributedDataset& data );
+	void SetErrorMessage( int threadIndex, CString message );
 };
 
 CDistributedInference::CThreadParams::CThreadParams( int threadsCount, CReferenceDnnFactory& referenceDnnFactory )
@@ -544,6 +562,13 @@ void CDistributedInference::CThreadParams::Initialize( IDistributedDataset& data
 	ErrorMessages.DeleteAll();
 	ErrorMessages.Add( CString{}, Refs.Size() );
 	IsErrorHappened = false;
+}
+
+void CDistributedInference::CThreadParams::SetErrorMessage( int threadIndex, CString message )
+{
+	IsErrorHappened = true;
+	ErrorMessages[threadIndex] = std::move( message );
+	ErrorMessages[threadIndex] += "(thread = " + Str( threadIndex ) + ")";
 }
 
 //---------------------------------------------------------------------------------------------------------------------
@@ -588,13 +613,11 @@ void CDistributedInference::RunOnce( IDistributedDataset& data )
 				threadParams.IsDnnInferenced[threadIndex] = true;
 			}
 		} catch( std::exception& e ) {
-			threadParams.IsErrorHappened = true;
-			threadParams.ErrorMessages[threadIndex] = e.what();
+			threadParams.SetErrorMessage( threadIndex, e.what() );
 		}
 #ifdef NEOML_USE_FINEOBJ
 		catch( CException* e ) {
-			threadParams.IsErrorHappened = true;
-			threadParams.ErrorMessages[threadIndex] = e->MessageText().CreateString();
+			threadParams.SetErrorMessage( threadIndex, e->MessageText().CreateString() );
 			delete e;
 		}
 #endif // NEOML_USE_FINEOBJ
@@ -608,12 +631,12 @@ void CDistributedInference::RunOnce( IDistributedDataset& data )
 
 void CDistributedInference::GetLastBlob( const CString& layerName, CObjectArray<const CDnnBlob>& blobs ) const
 {
-	blobs.DeleteAll();
-	blobs.Add( nullptr, threadParams->Refs.Size() );
+	blobs.SetSize( threadParams->Refs.Size() );
+	// Return blobs for all models
 	for( int i = 0; i < threadParams->Refs.Size(); ++i ) {
-		if( threadParams->IsDnnInferenced[i] ) {
-			blobs[i] = CheckCast<const CSinkLayer>( threadParams->Refs[i]->Dnn.GetLayer( layerName ) )->GetBlob();
-		}
+		blobs[i] = ( threadParams->IsDnnInferenced[i] )
+			? CheckCast<const CSinkLayer>( threadParams->Refs[i]->Dnn.GetLayer( layerName ) )->GetBlob()
+			: nullptr;
 	}
 }
 
