@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -310,15 +310,20 @@ bool CFullyConnectedSourceLayer::isBatchLoaded( int index ) const
 	return ( batchFirstLoadedIndex <= index && index <= batchLastLoadedIndex );
 }
 
-CLayerWrapper<CFullyConnectedSourceLayer> FullyConnectedSource( TBlobType labelType,
-	int batchSize, int maxBatchCount, IProblem* problem )
+// Creates CFullyConnectedSourceLayer with the name
+CFullyConnectedSourceLayer* FullyConnectedSource( CDnn& dnn, const char* name,
+	TBlobType labelType, int batchSize, int maxBatchCount, IProblem* problem, int numberOfElements, bool isZeroFreeTerm )
 {
-	return CLayerWrapper<CFullyConnectedSourceLayer>( "FullyConnectedSource", [=, &problem]( CFullyConnectedSourceLayer* result ) {
-		result->SetLabelType( labelType );
-		result->SetBatchSize( batchSize );
-		result->SetMaxBatchCount( maxBatchCount );
-		result->SetProblem( problem );
-	} );
+	CPtr<CFullyConnectedSourceLayer> result = new CFullyConnectedSourceLayer( dnn.GetMathEngine() );
+	result->SetLabelType( labelType );
+	result->SetBatchSize( batchSize );
+	result->SetMaxBatchCount( maxBatchCount );
+	result->SetProblem( problem );
+	result->SetNumberOfElements( numberOfElements );
+	result->SetZeroFreeTerm( isZeroFreeTerm );
+	result->SetName( name );
+	dnn.AddLayer( *result );
+	return result;
 }
 
 } // namespace NeoML
