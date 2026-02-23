@@ -67,7 +67,7 @@ public:
 	virtual ~CDistributedTraining();
 
 	// Gets the number of models in disitrbuted traning
-	int GetModelCount() const { return cnns.Size(); }
+	int GetModelCount() const { return threadPool->Size(); }
 	// Sets the solver for all of the models
 	void SetSolver( CArchive& archive );
 	// Sets the learning rate for all of the models
@@ -105,11 +105,13 @@ public:
 
 private:
 	struct CThreadParams;
+	// Run neural networks passes types
+	enum class TRunType { Invalid, RunOnce, RunBackwardOnce, Train };
 
-	// Either multi-threads on a CPU or multi-devices GPU
-	const bool isCpu;
 	// If multi-threads on a CPU, it is an operator of worker threads
-	IThreadPool* const threadPool;
+	CPtrOwner<IThreadPool> threadPool;
+	// Params to transfer to all threads function
+	CPtrOwner<CThreadParams> threadParams;
 	// Separate mathEngine for each thread or device both for CPU and GPU training
 	// Cannot use CPointerArray, as CreateDistributedCpuMathEngines requires a raw array to initialize engines
 	CArray<IMathEngine*> mathEngines;
@@ -117,15 +119,12 @@ private:
 	CPointerArray<CRandom> rands;
 	// Separate dnn for each thread
 	CPointerArray<CDnn> cnns;
-	// Separate `batchSize` for each dnn (may be empty) in a thread
-	CArray<int> batchSize;
-	// `Train()` cannot be called if it `isFirstRun`
-	// `batchSize` may not be equal 0, if it `isFirstRun` for `RunOnce`, `RunAndBackwardOnce` or `RunAndLearnOnce`.
-	bool isFirstRun = true;
-	// Containers for errors if it happened
-	CArray<CString> errorMessages;
 
-	void initialize( CArchive& archive, int count, TDistributedInitializer initializer, int seed );
+	void initialize( CArchive& archive, int count,
+		TDistributedInitializer initializer, int seed, size_t memoryLimit, const int* cudaDevs = nullptr );
+	void serializeDnn( CDnn& dnn, int count,
+		TDistributedInitializer initializer, int seed, size_t memoryLimit, const int* cudaDevs = nullptr );
+	void run( IDistributedDataset*, TRunType );
 
 	friend class CLoraSerializer;
 	friend struct ::NeoMLTest::CDistributedTrainingTest;
