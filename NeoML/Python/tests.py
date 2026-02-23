@@ -645,18 +645,23 @@ class LayersTestCase(MultithreadedTestCase):
     def test_dropout(self):
         math_engine = neoml.MathEngine.CpuMathEngine()
         dnn = neoml.Dnn.Dnn(math_engine)
-        source = neoml.Dnn.Source(dnn, "source")
-        dropout = neoml.Dnn.Dropout(source, 0.5, True, True, "dropout")
-        sink = neoml.Dnn.Sink(dropout, "sink")
+        source0 = neoml.Dnn.Source(dnn, "source0")
+        source1 = neoml.Dnn.Source(dnn, "source1")
+        dropout = neoml.Dnn.Dropout([source0, source1], 0.5, True, True, "dropout")
+        sink0 = neoml.Dnn.Sink(dropout, "sink0")
+        sink1 = neoml.Dnn.Sink((dropout, 1), "sink1")
         layer = dnn.layers['dropout']
         self.assertEqual(layer.name, 'dropout')
 
-        input = neoml.Blob.asblob(math_engine, np.ones((2, 3, 5, 4), dtype=np.float32), (2, 3, 1, 5, 1, 1, 4))
-        inputs = {"source": input}
+        input0 = neoml.Blob.asblob(math_engine, np.ones((2, 3, 5, 4), dtype=np.float32), (2, 3, 1, 5, 1, 1, 4))
+        input1 = neoml.Blob.asblob(math_engine, np.ones((7, 2, 4, 3), dtype=np.float32), (1, 7, 2, 1, 4, 3, 1))
+        inputs = {'source0': input0, 'source1': input1}
         outputs = dnn.run(inputs)
-        a = outputs["sink"].asarray()
+        a = outputs["sink0"].asarray()
+        b = outputs["sink1"].asarray()
 
-        self.assertEqual(a.shape, input.asarray().shape)
+        self.assertEqual(a.shape, input0.asarray().shape)
+        self.assertEqual(b.shape, input1.asarray().shape)
         self.assertEqual(dropout.rate, 0.5)
         self.assertEqual(dropout.spatial, True)
         self.assertEqual(dropout.batchwise, True)

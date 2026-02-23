@@ -45,27 +45,25 @@ class Dropout(Layer):
 
     .. rubric:: Layer inputs:
 
-    (1) a data blob of any dimensions.
+    The layer can have any number of inputs.
     
     .. rubric:: Layer outputs:
 
-    (1) a blob of the same dimensions, with some of the elements set to 0,
-        during training only.
-        When you run the network, this layer does nothing.
+    The layer returns one output for each input. Output blob size matches the size of corresponding input blob.
     """
 
-    def __init__(self, input_layer, rate=0.5, spatial=False, batchwise=False, name=None):
+    def __init__(self, input_layers, rate=0.5, spatial=False, batchwise=False, name=None):
 
-        if type(input_layer) is PythonWrapper.Dropout:
-            super().__init__(input_layer)
+        if type(input_layers) is PythonWrapper.Dropout:
+            super().__init__(input_layers)
             return
 
-        layers, outputs = check_input_layers(input_layer, 1)
+        layers, outputs = check_input_layers(input_layers, 0)
 
         if rate < 0 or rate >= 1:
             raise ValueError('The `rate` must be in [0, 1).')
 
-        internal = PythonWrapper.Dropout(str(name), layers[0], int(outputs[0]), float(rate), bool(spatial), bool(batchwise))
+        internal = PythonWrapper.Dropout(str(name), layers, outputs, float(rate), bool(spatial), bool(batchwise))
         super().__init__(internal)
 
     @property
