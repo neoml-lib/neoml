@@ -135,7 +135,7 @@ struct CVulkanDevice
 	DeviceFunction<PFN_vkDestroyShaderModule> vkDestroyShaderModule;
 	PFN_vkCmdPushConstants vkCmdPushConstants;
 	PFN_vkQueueWaitIdle vkQueueWaitIdle;
-	
+
 	friend class CVulkanDll;
 
 	CVulkanDevice( const CVulkanDevice& ) = delete;
@@ -217,6 +217,17 @@ private:
 	PFN_vkGetPhysicalDeviceQueueFamilyProperties vkGetPhysicalDeviceQueueFamilyProperties;
 	PFN_vkGetPhysicalDeviceMemoryProperties vkGetPhysicalDeviceMemoryProperties;
 	PFN_vkCreateDevice vkCreateDevice;
+
+#ifdef VULKAN_ENABLE_VALIDATION
+	PFN_vkEnumerateInstanceLayerProperties vkEnumerateInstanceLayerProperties;
+	PFN_vkEnumerateInstanceExtensionProperties vkEnumerateInstanceExtensionProperties;
+	PFN_vkCreateDebugReportCallbackEXT vkCreateDebugReportCallbackEXT;
+	PFN_vkDestroyDebugReportCallbackEXT vkDestroyDebugReportCallbackEXT;
+
+	VkDebugReportCallbackEXT callback;
+
+	bool checkLayersSupport() const;
+#endif
 
 	bool loadFunctions();
 	bool enumDevices();
