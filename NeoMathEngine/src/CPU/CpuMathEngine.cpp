@@ -41,6 +41,8 @@ limitations under the License.
 
 #endif // NEOML_USE_MKL
 
+const bool NEOMATHENGINE_API CCPUInfo::HasAvx512 = CCPUInfo::IsAvx512Available();
+const bool CCPUInfo::HasAvx512And2Fma = CCPUInfo::HasAvx512 && Avx512FmaUnitCount() > 1;
 const bool CCPUInfo::HasAvxAndFma = CCPUInfo::IsAvxAndFmaAvailable();
 const bool CCPUInfo::IsNotIntel = CCPUInfo::GetCpuArch() != CCPUInfo::TCpuArch::Intel;
 

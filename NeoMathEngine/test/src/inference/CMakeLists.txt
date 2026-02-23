@@ -108,6 +108,8 @@ target_sources(${PROJECT_NAME} INTERFACE
     ${CMAKE_CURRENT_SOURCE_DIR}/VectorTanhDiffOpTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/VectorTanhDiffTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/VectorTanhTest.cpp
+
+    ${CMAKE_CURRENT_SOURCE_DIR}/VectorBenchmark.cpp
 )
 
 target_include_directories(${PROJECT_NAME} INTERFACE ${CMAKE_CURRENT_SOURCE_DIR})
