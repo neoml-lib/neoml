@@ -319,8 +319,8 @@ static void perfomanceTest( IMathEngine& mathEngine, bool useReference, bool lea
 		randoms, useReference, learn, numOfThreads );
 	referenceDnnFactory.Release(); // try to release the factory, to check dtor deletion order
 
-	CPtr<CDnnBlob> sourceBlob = CheckCast<CSourceLayer>( dnnRefs[0]->Dnn.GetLayer( "in" ).Ptr() )->GetBlob();
-	CPtr<CDnnBlob> sinkBlob = CheckCast<CSinkLayer>( dnnRefs[0]->Dnn.GetLayer( "sink" ).Ptr() )->GetBlob();
+	CPtr<CDnnBlob> sourceBlob = CheckCast<CSourceLayer>( dnnRefs[0]->Dnn.GetLayer( "in" ).Ptr() )->GetBlob()->GetCopy();
+	CPtr<CDnnBlob> sinkBlob = CheckCast<CSinkLayer>( dnnRefs[0]->Dnn.GetLayer( "sink" ).Ptr() )->GetBlob()->GetCopy();
 
 	CArray<CReferenceDnnTestParam> params;
 	params.SetBufferSize( numOfThreads );
@@ -359,7 +359,7 @@ static void implTest( IMathEngine& mathEngine, bool useReference, bool learn = t
 	}
 
 	dnn.RunOnce();
-	CPtr<CDnnBlob> sinkBlob = CheckCast<CSinkLayer>( dnn.GetLayer( "sink" ).Ptr() )->GetBlob();
+	CPtr<CDnnBlob> sinkBlob = CheckCast<CSinkLayer>( dnn.GetLayer( "sink" ).Ptr() )->GetBlob()->GetCopy();
 
 	CPtr<CReferenceDnnFactory> referenceDnnFactory;
 	CPtrOwner<CReferenceDnnTestParam> param;
