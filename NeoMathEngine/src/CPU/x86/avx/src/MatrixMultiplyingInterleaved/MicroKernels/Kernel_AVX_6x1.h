@@ -69,8 +69,14 @@ struct CMicroKernel_6x1 : public CMicroKernelBase<6, 1> {
 		if( k == 1 ) {
 			__m256i mask = _mm256_set_epi64x( 0, -1, -1, -1 );
 			b00 = _mm256_broadcast_ss( bPtr );
-			a00 = _mm256_loadu_ps( aPtr );
-			b00 = _mm256_and_ps( b00, _mm256_castsi256_ps( mask ) );
+			// Only six values pointed by `aPtr` are valid, the next two may lie
+			// beyond the buffer and contain NaN. We use `maskload` to avoid access
+			// beyond the buffer and to guarantee zeroes in the two high slots of `a00`.
+			// Tho high slots of `b00` play no role. If they are finite, they will
+			// produce zero by multiplication with zeros of `a00`. If they are
+			// not finite, the same value will be in other slots also, so the result
+			// will not be finite in any case.
+			a00 = _mm256_maskload_ps( aPtr, mask );
 			c0 = _mm256_fmadd_ps( a00, b00, c0 );
 		}
 
